@@ -1,4 +1,4 @@
-package com.smeej.ManaBasedCrafter;
+package com.smeej.manabasedcrafter;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

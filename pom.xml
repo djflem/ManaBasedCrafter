@@ -40,6 +40,30 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>io.magicthegathering</groupId>
+			<artifactId>javasdk</artifactId>
+			<version>0.0.18</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.squareup.okio</groupId>
+			<artifactId>okio</artifactId>
+			<version>3.4.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.discord4j</groupId>
+			<artifactId>discord4j-core</artifactId>
+			<version>3.2.7</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>3.25.5</version>
+		</dependency>
 	</dependencies>
 
 	<build>
