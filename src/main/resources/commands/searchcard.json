@@ -1,0 +1,12 @@
+{
+  "name": "search card",
+  "description": "Search for a specific card",
+  "options": [
+    {
+      "name": "card",
+      "description": "Card name",
+      "type": 3,
+      "required": true
+    }
+  ]
+}
