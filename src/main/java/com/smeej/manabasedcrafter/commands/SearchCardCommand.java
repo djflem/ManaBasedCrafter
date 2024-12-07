@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 public class SearchCardCommand implements SlashCommand {
     @Override
     public String getName() {
-        return "search card";
+        return "searchcard";
     }
 
     @Override

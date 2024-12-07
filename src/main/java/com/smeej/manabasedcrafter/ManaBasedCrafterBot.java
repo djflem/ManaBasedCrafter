@@ -21,6 +21,7 @@ public class ManaBasedCrafterBot {
 		new SpringApplicationBuilder(ManaBasedCrafterBot.class)
 				.build()
 				.run(args);
+
 		Thread.currentThread().join(); // Prevents bot from stopping
 	}
 
