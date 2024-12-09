@@ -19,18 +19,18 @@ public class SearchCardService {
     /**
      * Searches for a Magic: The Gathering card by name.
      *
-     * @param cardName The name of the card to search for.
+     * @param name The name of the card to search for.
      * @return An Optional containing the Card if found, or empty if not found.
      */
-    public Mono<Card> searchCardByName(String cardName) {
+    public Mono<Card> searchCardByName(String name) {
 
         try {
             // Fetch all cards matching the name
-            List<Card> cards = CardAPI.getAllCards(List.of(cardName));
+            List<Card> cards = CardAPI.getAllCards(List.of(name));
 
             // Filter for exact name match (ignoring case)
             return cards.stream()
-                    .filter(card -> card.getName().equalsIgnoreCase(cardName))
+                    .filter(card -> card.getName().equalsIgnoreCase(name))
                     .findFirst()
                     .map(Mono::just)
                     .orElseGet(Mono::empty);

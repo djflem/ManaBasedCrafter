@@ -12,12 +12,8 @@ import reactor.core.publisher.Mono;
 @Component
 public class SearchCardCommand implements SlashCommand {
 
-    private final SearchCardService searchCard;
-
     @Autowired
-    public SearchCardCommand(SearchCardService searchCard) {
-        this.searchCard = searchCard;
-    }
+    private SearchCardService searchCardService;
 
     @Override
     public String getName() {
@@ -26,25 +22,29 @@ public class SearchCardCommand implements SlashCommand {
 
     @Override
     public Mono<Void> handle(ChatInputInteractionEvent event) {
-        String cardName = event.getOption("card")
+        String searchedCardName = getCardNameFromEvent(event);
+
+        System.out.println("Searching for card: " + searchedCardName);
+
+        return searchCardService.searchCardByName(searchedCardName)
+                .flatMap(chosenCard -> replyToEvent(event, formatCardDetails(chosenCard)))
+                .switchIfEmpty(Mono.defer(() -> {
+                    System.out.println("No card found for: " + searchedCardName);
+                    return replyToEvent(event, "Card not found!");
+                }));
+    }
+
+    private String getCardNameFromEvent(ChatInputInteractionEvent event) {
+        return event.getOption("card")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
                 .map(ApplicationCommandInteractionOptionValue::asString)
                 .orElse("");
+    }
 
-        // Log card name
-        System.out.println("Searching for card: " + cardName);
-
-        // Reply to the user with the card search result
-        return searchCard.searchCardByName(cardName)
-                .flatMap(card -> event.reply()
-                        .withEphemeral(true)
-                        .withContent(formatCardDetails(card)))
-                .switchIfEmpty(Mono.defer(() -> {
-                    System.out.println("No card found for: " + cardName);
-                    return event.reply()
-                            .withEphemeral(true)
-                            .withContent("Card not found!");
-                }));
+    private Mono<Void> replyToEvent(ChatInputInteractionEvent event, String content) {
+        return event.reply()
+                .withEphemeral(true)
+                .withContent(content);
     }
 
     private String formatCardDetails(Card card) {
