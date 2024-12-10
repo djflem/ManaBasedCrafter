@@ -3,7 +3,7 @@
   "description": "Search for a specific card",
   "options": [
     {
-      "name": "card",
+      "name": "cardname",
       "description": "Card name",
       "type": 3,
       "required": true

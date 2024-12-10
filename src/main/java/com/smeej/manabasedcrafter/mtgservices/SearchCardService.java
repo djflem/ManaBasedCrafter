@@ -39,4 +39,12 @@ public class SearchCardService {
             return Mono.empty(); // Return an empty Mono in case of an error
         }
     }
+
+    public static String formatCardDetails(Card card) {
+        return String.format("**%s**\nType: %s\nMana Cost: %s\nText: %s",
+                card.getName(),
+                card.getType(),
+                card.getManaCost(),
+                card.getText());
+    }
 }
