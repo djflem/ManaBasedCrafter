@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class ManaBasedCrafterBot {
 
+	public static final String API_SCRYFALL_URL = "https://api.scryfall.com/";
+
 	@Value("${token}")
 	private String token;
 
