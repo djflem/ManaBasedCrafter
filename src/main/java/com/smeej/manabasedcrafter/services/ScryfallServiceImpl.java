@@ -1,7 +1,7 @@
 package com.smeej.manabasedcrafter.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smeej.manabasedcrafter.responses.SearchCardResponse;
+import com.smeej.manabasedcrafter.responses.ScryfallResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -15,12 +15,12 @@ public class ScryfallServiceImpl implements ScryfallService {
 
     private final WebClient webClient;
 
-    public ScryfallServiceImpl(WebClient webClient) {
+    private ScryfallServiceImpl(WebClient webClient) {
         this.webClient = webClient;
     }
 
     @Override
-    public Mono<SearchCardResponse> searchCardByName(String cardName) {
+    public Mono<ScryfallResponse> searchCardByName(String cardName) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/cards/named")
                         .queryParam("fuzzy", cardName)
@@ -30,10 +30,10 @@ public class ScryfallServiceImpl implements ScryfallService {
                 .map(this::parseSearchCardResponse);
     }
 
-    private SearchCardResponse parseSearchCardResponse(String json) {
+    private ScryfallResponse parseSearchCardResponse(String json) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(json, SearchCardResponse.class);
+            return objectMapper.readValue(json, ScryfallResponse.class);
         } catch (Exception e) {
             System.err.println("Error mapping JSON: " + e.getMessage());
             return null;

@@ -57,7 +57,7 @@ public class GuildCommandRegistrar implements ApplicationRunner {
     private long guildId;
 
     //Use the rest client provided by our Bean
-    public GuildCommandRegistrar(RestClient client) {
+    private GuildCommandRegistrar(RestClient client) {
         this.client = client;
     }
 

@@ -9,7 +9,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * Provides a configured WebClient bean specifically for interacting with the Scryfall API.
  */
 @Configuration
-public class WebClientConfig {
+public class ScryfallWebClientConfig {
 
     private static final String HEADER_ACCEPT = "application/json";
     private static final String HEADER_USER_AGENT = "ManaBasedCrafterBot/1.0 (contact: djfleming.metis@gmail.com)";

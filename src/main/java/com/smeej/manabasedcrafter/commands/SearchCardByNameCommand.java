@@ -1,6 +1,6 @@
 package com.smeej.manabasedcrafter.commands;
 
-import com.smeej.manabasedcrafter.responses.SearchCardResponse;
+import com.smeej.manabasedcrafter.responses.ScryfallResponse;
 import com.smeej.manabasedcrafter.services.ScryfallService;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
@@ -38,7 +38,7 @@ public class SearchCardByNameCommand implements SlashCommand {
 
     private final ScryfallService scryfallService;
 
-    public SearchCardByNameCommand(ScryfallService scryfallService) {
+    private SearchCardByNameCommand(ScryfallService scryfallService) {
         this.scryfallService = scryfallService;
     }
 
@@ -63,7 +63,7 @@ public class SearchCardByNameCommand implements SlashCommand {
                 .orElse("");
     }
 
-    private Mono<Void> handleCardResponse(SearchCardResponse response, ChatInputInteractionEvent event) {
+    private Mono<Void> handleCardResponse(ScryfallResponse response, ChatInputInteractionEvent event) {
         if (response == null) {
             return event.reply()
                     .withEphemeral(true)

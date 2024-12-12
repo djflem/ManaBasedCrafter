@@ -25,7 +25,7 @@ import java.util.Map;
  * The DTO can be expanded in the future if more fields are needed.
  */
 @JsonIgnoreProperties(ignoreUnknown = true) // Ignore unrecognized fields
-public class SearchCardResponse {
+public class ScryfallResponse {
 
     @JsonProperty("object")
     private String object;

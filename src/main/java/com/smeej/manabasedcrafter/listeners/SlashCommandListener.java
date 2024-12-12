@@ -25,13 +25,13 @@ public class SlashCommandListener {
 
     private final Collection<SlashCommand> commands;
 
-    public SlashCommandListener(List<SlashCommand> slashCommands, GatewayDiscordClient client) {
+    private SlashCommandListener(List<SlashCommand> slashCommands, GatewayDiscordClient client) {
         commands = slashCommands;
 
         client.on(ChatInputInteractionEvent.class, this::handle).subscribe();
     }
 
-    public Mono<Void> handle(ChatInputInteractionEvent event) {
+    private Mono<Void> handle(ChatInputInteractionEvent event) {
         //Convert our list to a flux that we can iterate through
         return Flux.fromIterable(commands)
                 //Filter out all commands that don't match the name this event is for

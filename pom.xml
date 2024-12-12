@@ -38,6 +38,7 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
+			<version>3.4.0</version>
 		</dependency>
 
 		<dependency>
@@ -50,12 +51,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
-
-<!--		<dependency>-->
-<!--			<groupId>io.magicthegathering</groupId>-->
-<!--			<artifactId>javasdk</artifactId>-->
-<!--			<version>0.0.18</version>-->
-<!--		</dependency>-->
 
 		<dependency>
 			<groupId>com.squareup.okio</groupId>
