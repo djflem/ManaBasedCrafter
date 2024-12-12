@@ -10,7 +10,20 @@ import reactor.core.publisher.Mono;
  */
 public interface SlashCommand {
 
+    /**
+     * Retrieves the case-sensitive name of the command.
+     *
+     * @return the name of the command as a String
+     */
     String getName();
 
+    /**
+     * Handles the logic for processing a specific slash command event.
+     * This method is invoked when a ChatInputInteractionEvent is received,
+     * and it is responsible for executing the associated command logic.
+     *
+     * @param event the ChatInputInteractionEvent that contains details of the slash command interaction
+     * @return a Mono<Void> that completes when the command processing is finished
+     */
     Mono<Void> handle(ChatInputInteractionEvent event);
 }

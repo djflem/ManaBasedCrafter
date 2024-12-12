@@ -4,8 +4,10 @@ import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+// Test Command from Discord4J Example Project
 @Component
 public class PingCommand implements SlashCommand {
+
     @Override
     public String getName() {
         return "ping";

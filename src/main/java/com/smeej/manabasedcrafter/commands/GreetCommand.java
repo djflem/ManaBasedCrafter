@@ -6,8 +6,11 @@ import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+// Test Command from Discord4J Example Project
+
 @Component
 public class GreetCommand implements SlashCommand {
+
     @Override
     public String getName() {
         return "greet";
