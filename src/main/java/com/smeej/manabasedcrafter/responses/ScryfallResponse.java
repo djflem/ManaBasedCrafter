@@ -18,6 +18,7 @@ import java.util.Map;
  * - id: The unique identifier for the card.
  * - name: The name of the card.
  * - imageUris: A map containing image URIs for the card, categorized by quality or size keys (e.g., "normal").
+ * - manaCost: A mana value of a card. For making color count charts.
  *
  * This class is commonly used in external API integrations, such as interacting
  * with Magic: The Gathering card databases, to parse and provide access to card information.
@@ -36,6 +37,9 @@ public class ScryfallResponse {
     @JsonProperty("name")
     private String name;
 
+    @JsonProperty("mana_cost")
+    private String manaCost;
+
     @JsonProperty("image_uris")
     private Map<String, String> imageUris;
 
@@ -50,6 +54,10 @@ public class ScryfallResponse {
 
     public String getName() {
         return name;
+    }
+
+    public String getManaCost() {
+        return manaCost;
     }
 
     public Map<String, String> getImageUris() {

@@ -6,18 +6,18 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 /**
  * Configuration class for setting up a {@link WebClient} instance.
- * Provides a configured WebClient bean specifically for interacting with the Scryfall API.
+ * Provides a configured WebClient bean specifically for interacting with the QuickChart API.
  */
 @Configuration
-public class ScryfallWebClientConfig {
+public class QuickChartWebClientConfig {
 
     private static final String HEADER_ACCEPT = "application/json";
     private static final String HEADER_USER_AGENT = "ManaBasedCrafterBot/1.0 (contact: djfleming.metis@gmail.com)";
 
-    @Bean(name = "scryfallWebClient")
-    public WebClient scryfallWebClient(WebClient.Builder webClientBuilder) {
+    @Bean(name = "quickChartWebClient")
+    public WebClient quickChartWebClient(WebClient.Builder webClientBuilder) {
         return webClientBuilder
-                .baseUrl("https://api.scryfall.com")
+                .baseUrl("https://quickchart.io")
                 .defaultHeader("Accept", HEADER_ACCEPT)
                 .defaultHeader("User-Agent", HEADER_USER_AGENT)
                 .build();

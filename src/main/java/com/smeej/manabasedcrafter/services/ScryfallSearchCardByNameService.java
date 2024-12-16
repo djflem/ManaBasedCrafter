@@ -2,24 +2,21 @@ package com.smeej.manabasedcrafter.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smeej.manabasedcrafter.responses.ScryfallResponse;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-/**
- * Implementation of the {@link ScryfallService} interface to interact with the Scryfall API.
- * This service provides functionality to search for Magic: The Gathering cards.
- */
 @Service
-public class ScryfallServiceImpl implements ScryfallService {
+public class ScryfallSearchCardByNameService {
 
     private final WebClient webClient;
 
-    private ScryfallServiceImpl(WebClient webClient) {
+    private ScryfallSearchCardByNameService(@Qualifier("scryfallWebClient") WebClient webClient) {
         this.webClient = webClient;
     }
 
-    @Override
+    // WebClient is essential because data must be retrieved from an external source (Scryfall API).
     public Mono<ScryfallResponse> searchCardByName(String cardName) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/cards/named")
