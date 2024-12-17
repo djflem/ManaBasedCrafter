@@ -1,0 +1,12 @@
+{
+  "name": "analyzedeck",
+  "description": "Analyze a deck by uploading a file and display statistical charts",
+  "options": [
+    {
+      "name": "textorcsvfile",
+      "description": "Upload a deck file (.txt or .csv)",
+      "type": 11,
+      "required": true
+    }
+  ]
+}

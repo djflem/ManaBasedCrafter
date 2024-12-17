@@ -1,94 +1,26 @@
-1 Agadeem, the Undercrypt
-1 Anvil of Bogardan
-1 Archfiend of Despair
-1 Arid Mesa
-1 Badlands
-1 Balor
-1 Bedevil
-1 Blightstep Pathway
-1 Blood Crypt
-1 Bloodchief Ascension
-1 Bloodletter of Aclazotz
-1 Bloodstained Mire
-1 Bojuka Bog
-1 Cavern of Souls
-1 Chainer, Dementia Master
-1 Chaos Warp
-1 Cityscape Leveler
-1 Command Tower
-1 Creeping Bloodsucker
-1 Dark Deal
-1 Dauthi Voidwalker
-1 Demonic Tutor
-1 Descent into Avernus
-1 Dragon Mage
-1 Dragonskull Summit
-1 Earthquake
-1 Fate Unraveler
-1 Flamekin Village
-1 Geier Reach Sanitarium
-1 Graven Cairns
-1 Haunted Ridge
-1 Incendiary Command
-1 Kaervek the Merciless
-1 Keen Duelist
-1 Leechridden Swamp
-1 Lightning Greaves
-1 Liliana's Caress
-1 Living Death
-1 Luxury Suite
-1 Magus of the Wheel
-1 Marsh Flats
-1 Megrim
-1 Memory Jar
-1 Mikaeus, the Unhallowed
-1 Mount Doom
-7 Mountain
-1 Neheb, the Eternal
-1 Pestilence
-1 Piranha Marsh
-1 Plague Spitter
-1 Polluted Delta
-1 Psychosis Crawler
-1 Pyrohemia
-1 Rakdos Charm
-1 Rakdos, Lord of Riots
-1 Rakdos, Patron of Chaos
-1 Reforge the Soul
-1 Rune-Scarred Demon
-1 Sangromancer
-1 Scalding Tarn
-1 Scrawling Crawler
-1 Sheoldred
-1 Sheoldred, the Apocalypse
-1 Sheoldred, Whispering One
-1 Sidisi, Undead Vizier
-1 Sneak Attack
-1 Spear Spewer
-1 Spiteful Visions
-1 Stormfist Crusader
-1 Strip Mine
-1 Sulfurous Springs
-1 Sunscorched Desert
-3 Swamp
-1 Takenuma, Abandoned Mire
-1 Teferi's Puzzle Box
-1 The Haunt of Hightower
-1 The Infamous Cruelclaw
-1 The Meathook Massacre
-1 Twinflame Tyrant
-1 Underworld Breach
-1 Underworld Dreams
-1 Urborg, Tomb of Yawgmoth
-1 Valakut Stoneforge
-1 Valgavoth, Terror Eater
-1 Vampiric Tutor
-1 Verdant Catacombs
-1 Vilis, Broker of Blood
-1 Volrath's Stronghold
-1 Wheel of Fortune
-1 Whip of Erebos
-1 Wooded Foothills
-1 Wurmcoil Engine
+Agadeem, the Undercrypt
+Anvil of Bogardan
+Archfiend of Despair
+Arid Mesa
+Badlands
+Balor
+Bedevil
+Blightstep Pathway
+Blood Crypt
+Bloodchief Ascension
+Bloodletter of Aclazotz
+Bloodstained Mire
+Bojuka Bog
+Cavern of Souls
+Chainer, Dementia Master
+Chaos Warp
+Cityscape Leveler
+Command Tower
+Creeping Bloodsucker
+Dark Deal
+Dauthi Voidwalker
+Demonic Tutor
+Descent into Avernus
+Dragon Mage
 
 

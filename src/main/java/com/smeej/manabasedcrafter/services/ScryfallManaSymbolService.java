@@ -8,7 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-public class ParseManaSymbolService {
+public class ScryfallManaSymbolService {
 
     private static final Pattern MANA_SYMBOL_PATTERN = Pattern.compile("\\{([^}]*)\\}");
 

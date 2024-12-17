@@ -8,17 +8,17 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Service
-public class ScryfallSearchCardByNameService {
+public class ScryfallSearchCardService {
 
-    private final WebClient webClient;
+    private final WebClient scryfallWebClient;
 
-    private ScryfallSearchCardByNameService(@Qualifier("scryfallWebClient") WebClient webClient) {
-        this.webClient = webClient;
+    public ScryfallSearchCardService(@Qualifier("scryfallWebClient") WebClient scryfallWebClient) {
+        this.scryfallWebClient = scryfallWebClient;
     }
 
     // WebClient is essential because data must be retrieved from an external source (Scryfall API).
     public Mono<ScryfallResponse> searchCardByName(String cardName) {
-        return webClient.get()
+        return scryfallWebClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/cards/named")
                         .queryParam("fuzzy", cardName)
                         .build())

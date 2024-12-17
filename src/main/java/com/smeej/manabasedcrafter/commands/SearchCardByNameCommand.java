@@ -1,7 +1,7 @@
 package com.smeej.manabasedcrafter.commands;
 
 import com.smeej.manabasedcrafter.responses.ScryfallResponse;
-import com.smeej.manabasedcrafter.services.ScryfallSearchCardByNameService;
+import com.smeej.manabasedcrafter.services.ScryfallSearchCardService;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
@@ -36,10 +36,10 @@ import java.util.Map;
 @Component
 public class SearchCardByNameCommand implements SlashCommand {
 
-    private final ScryfallSearchCardByNameService scryfallSearchCardByNameService;
+    private final ScryfallSearchCardService scryfallSearchCardService;
 
-    public SearchCardByNameCommand(ScryfallSearchCardByNameService scryfallSearchCardByNameService) {
-        this.scryfallSearchCardByNameService = scryfallSearchCardByNameService;
+    public SearchCardByNameCommand(ScryfallSearchCardService scryfallSearchCardService) {
+        this.scryfallSearchCardService = scryfallSearchCardService;
     }
 
     @Override
@@ -51,7 +51,7 @@ public class SearchCardByNameCommand implements SlashCommand {
     public Mono<Void> handle(ChatInputInteractionEvent event) {
         String cardName = extractCardName(event);
 
-        return scryfallSearchCardByNameService.searchCardByName(cardName)
+        return scryfallSearchCardService.searchCardByName(cardName)
                 .flatMap(response -> handleCardResponse(response, event))
                 .onErrorResume(error -> handleError(event, error));
     }
