@@ -55,7 +55,7 @@ public class SearchCardsByFileCommand implements SlashCommand {
                 .onErrorResume(e -> Mono.empty()) // Skip failed API calls
                 .collectList()
                 .flatMap(responses -> generateManaChart(responses, event))
-                .onErrorResume(e -> handleError(event, "An unexpected error occurred: " + e.getMessage())); // Reusable error handler
+                .onErrorResume(error -> handleError(event, error));
     }
 
     private Mono<String> extractDeckFileContent(ChatInputInteractionEvent event) {
@@ -101,15 +101,56 @@ public class SearchCardsByFileCommand implements SlashCommand {
             }
         }
 
-        String chartUrl = quickChartService.generatePieChartUrl(manaCounts);
+        // Map mana symbols to display-friendly labels and their corresponding colors
+        Map<String, String> symbolToName = Map.of(
+                "U", "Blue",
+                "B", "Black",
+                "G", "Green",
+                "W", "White",
+                "R", "Red"
+        );
+
+        Map<String, String> symbolToColor = Map.of(
+                "U", "#1E90FF",   // Blue
+                "B", "#000000",   // Black
+                "G", "#228B22",   // Green
+                "W", "#FFFFFF",   // White
+                "R", "#FF4500"    // Red
+        );
+
+        // Filter and transform manaCounts to only include colors
+        Map<String, Integer> chartData = new HashMap<>();
+        StringBuilder colors = new StringBuilder();
+
+        manaCounts.forEach((symbol, count) -> {
+            if (symbolToName.containsKey(symbol)) {
+                String name = symbolToName.get(symbol);
+                chartData.put(name, chartData.getOrDefault(name, 0) + count);
+
+                // Append color without quotes
+                if (colors.length() > 0) {
+                    colors.append(",");
+                }
+                colors.append(symbolToColor.get(symbol));
+            }
+        });
+
+        // Generate the pie chart URL with colors
+        String chartUrl = quickChartService.generateCustomPieChartUrl(chartData, colors.toString());
+
+        // Prepare the reply message
         StringBuilder message = new StringBuilder("Here's the mana breakdown for your deck:\n").append(chartUrl);
         if (failedCards > 0) {
             message.append("\n⚠️ ").append(failedCards).append(" cards could not be processed.");
         }
+
         return event.editReply(message.toString()).then();
     }
 
-    private Mono<Void> handleError(ChatInputInteractionEvent event, String errorMessage) { // Extracted error handling
-        return event.editReply(errorMessage).then(Mono.empty());
+    private Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
+        System.err.println("Error: " + error.getMessage());
+        return event.reply()
+                .withEphemeral(true)
+                .withContent("Analysis unsuccessful.");
     }
 }
