@@ -10,28 +10,34 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 /**
- * A component class implementing the SlashCommand interface.
- * This class defines the logic for handling the "searchcard" command, allowing users to search for
- * Magic: The Gathering cards by their names using the Scryfall API.
+ * The SearchCardByNameCommand class implements the SlashCommand interface
+ * and defines the functionality for a "searchcard" slash command, which
+ * allows users to search for a Magic: The Gathering card by its name using
+ * the Scryfall API.
  *
- * The class interacts with the scryfallSearchCardByNameService to execute a search operation,
- * processes the results, and sends an appropriate response back to the event channel.
+ * This command retrieves the card image or sends an appropriate error message
+ * if the card cannot be found or if no image is available. The command logic
+ * is executed asynchronously, and any errors encountered during execution are
+ * handled gracefully.
  *
- * Responsibilities:
- * - Extract the card name from the provided event inputs.
- * - Perform an external query using scryfallSearchCardByNameService to search for a card by its name.
- * - Handle the search response by replying with the card's image link or an error message if the card is not found.
- * - Manage errors that occur during the search process or result handling.
- *
- * Methods:
- * - getName: Returns the name of the slash command ("searchcard").
- * - handle: Manages the workflow of extracting the card name, querying the card, and handling the response.
- * - extractCardName: Retrieves the card name input specified in the command event.
- * - handleCardResponse: Processes the search response, constructing an appropriate reply with the card image or an error message.
- * - handleError: Sends a fallback response to the user in case of errors during processing.
+ * The primary dependencies and methods are described below:
  *
  * Dependencies:
- * This class relies on an instance of scryfallSearchCardByNameService to perform the card search operation.
+ * - ScryfallSearchCardService: A service responsible for making requests to
+ *   the Scryfall API and retrieving card data.
+ *
+ * Key Methods:
+ * - getName(): Returns the name of the slash command, which is "searchcard".
+ * - handle(ChatInputInteractionEvent): Processes the incoming slash command event
+ *   by extracting the card name and retrieving the card information from
+ *   the Scryfall API.
+ * - extractCardName(ChatInputInteractionEvent): Extracts the card name entered
+ *   by the user in the slash command input.
+ * - handleCardResponse(ScryfallResponse, ChatInputInteractionEvent): Handles
+ *   the response from the Scryfall API, sending the card's image if available
+ *   or an appropriate message if not.
+ * - handleError(ChatInputInteractionEvent, Throwable): Handles errors that
+ *   occur during the command execution, responding with a suitable error message.
  */
 @Component
 public class SearchCardByNameCommand implements SlashCommand {
@@ -71,6 +77,7 @@ public class SearchCardByNameCommand implements SlashCommand {
         }
 
         Map<String, String> imageUris = response.getImageUris();
+
         if (imageUris != null && imageUris.containsKey("normal")) {
             return event.reply()
                     .withEphemeral(false)
@@ -82,7 +89,8 @@ public class SearchCardByNameCommand implements SlashCommand {
         }
     }
 
-    private Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
+    @Override
+    public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
         System.err.println("Error: " + error.getMessage());
         return event.reply()
                 .withEphemeral(true)

@@ -17,12 +17,31 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Command implementation for analyzing a deck by processing an uploaded file containing card names.
+ * The command retrieves mana information for the cards listed in the file and generates a pie chart
+ * showcasing the breakdown of mana symbols used in the deck. Supports files with ".txt" or ".csv"
+ * extensions.
+ *
+ * This command provides the following features:
+ * - Extracts and processes a file uploaded via a slash command interaction.
+ * - Validates supported file types and retrieves file contents using a WebClient.
+ * - Parses card names from the uploaded file content and queries card information via the Scryfall API.
+ * - Aggregates mana symbol data using the ScryfallManaSymbolService.
+ * - Generates a visual mana breakdown chart using the QuickChartService.
+ *
+ * The command also includes error handling for invalid files, failed file processing, Scryfall API errors,
+ * and other runtime exceptions during processing. Any errors encountered are reported back to the user
+ * through the chat interaction response.
+ */
 @Component
 public class SearchCardsByFileCommand implements SlashCommand {
 
     private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // Extracted constant for the delay duration
+    private static final Set<String> SUPPORTED_FILE_EXTENSIONS = Set.of(".txt", ".csv");
 
     private final ScryfallSearchCardService scryfallSearchCardService;
     private final ScryfallManaSymbolService scryfallManaSymbolService;
@@ -59,27 +78,28 @@ public class SearchCardsByFileCommand implements SlashCommand {
     }
 
     private Mono<String> extractDeckFileContent(ChatInputInteractionEvent event) {
-        var attachment = event.getOption("textorcsvfile")
+        return event.getOption("textorcsvfile")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asAttachment);
-
-        if (attachment.isEmpty()) {
-            return Mono.error(new IllegalArgumentException("No file uploaded for processing."));
-        }
-
-        String attachmentFileName = attachment.get().getFilename(); // Renamed for clarity
-        if (!(attachmentFileName.endsWith(".txt") || attachmentFileName.endsWith(".csv"))) {
-            return Mono.error(new IllegalArgumentException("Only .txt or .csv files are supported."));
-        }
-
-        return fetchFileContent(attachment.get().getUrl());
+                .map(ApplicationCommandInteractionOptionValue::asAttachment)
+                .map(attachment -> {
+                    String fileName = attachment.getFilename();
+                    if (!isSupportedFileExtension(fileName)) {
+                        throw new IllegalArgumentException("Supported extensions are .txt or .csv.");
+                    }
+                    return downloadFileContent(attachment.getUrl());
+                })
+                .orElse(Mono.error(new IllegalArgumentException("No file uploaded for processing.")));
     }
 
-    private Mono<String> fetchFileContent(String url) { // Renamed for clarity
+    private Mono<String> downloadFileContent(String url) { // Renamed for clarity
         return generalWebClient.get()
                 .uri(url)
                 .retrieve()
                 .bodyToMono(String.class);
+    }
+
+    private boolean isSupportedFileExtension(String fileName) {
+        return SUPPORTED_FILE_EXTENSIONS.stream().anyMatch(fileName::endsWith);
     }
 
     private List<String> parseCardNames(String fileContent) {
@@ -139,7 +159,7 @@ public class SearchCardsByFileCommand implements SlashCommand {
         String chartUrl = quickChartService.generateCustomPieChartUrl(chartData, colors.toString());
 
         // Prepare the reply message
-        StringBuilder message = new StringBuilder("Here's the mana breakdown for your deck:\n").append(chartUrl);
+        StringBuilder message = new StringBuilder("Analysis complete:\n").append(chartUrl);
         if (failedCards > 0) {
             message.append("\n⚠️ ").append(failedCards).append(" cards could not be processed.");
         }
@@ -147,7 +167,8 @@ public class SearchCardsByFileCommand implements SlashCommand {
         return event.editReply(message.toString()).then();
     }
 
-    private Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
+    @Override
+    public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
         System.err.println("Error: " + error.getMessage());
         return event.reply()
                 .withEphemeral(true)

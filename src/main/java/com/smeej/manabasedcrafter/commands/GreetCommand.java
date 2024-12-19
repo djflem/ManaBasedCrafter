@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 // Test Command from Discord4J Example Project
-
 @Component
 public class GreetCommand implements SlashCommand {
 
@@ -33,5 +32,10 @@ public class GreetCommand implements SlashCommand {
         return  event.reply()
                 .withEphemeral(true)
                 .withContent("Hello, " + name);
+    }
+
+    @Override
+    public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
+        return null;
     }
 }

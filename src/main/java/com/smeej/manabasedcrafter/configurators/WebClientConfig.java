@@ -4,6 +4,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
 
+/**
+ * Configuration class for creating and configuring WebClient beans to interact with external APIs.
+ * This class defines specific WebClient beans for interacting with the Scryfall and QuickChart APIs,
+ * as well as a general-purpose WebClient bean for generic API interactions.
+ *
+ * The headers for all WebClient beans include an Accept header specifying application/json
+ * and a User-Agent header identifying the application.
+ */
 @Configuration
 public class WebClientConfig {
 

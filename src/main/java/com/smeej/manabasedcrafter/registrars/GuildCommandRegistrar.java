@@ -50,7 +50,6 @@ import java.util.List;
 public class GuildCommandRegistrar implements ApplicationRunner {
 
     private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-
     private final RestClient client;
 
     @Value("${guildId}")
