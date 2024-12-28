@@ -30,15 +30,4 @@ public interface SlashCommand {
      * @return a Mono<Void> that completes when the command processing is finished
      */
     Mono<Void> handle(ChatInputInteractionEvent event);
-
-    /**
-     * Handles errors that occur during the processing of a Discord slash command interaction.
-     * This method logs the error and sends a short response to the user indicating that
-     * the operation was unsuccessful.
-     *
-     * @param event the ChatInputInteractionEvent that contains details of the user interaction
-     * @param error the Throwable that represents the error encountered during command processing
-     * @return a Mono<Void> that completes after sending the error message to the user
-     */
-    Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error);
 }

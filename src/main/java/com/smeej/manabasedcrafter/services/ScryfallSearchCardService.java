@@ -8,28 +8,17 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 /**
- * Service for searching Magic: The Gathering cards via the Scryfall API.
+ * Service class for interacting with the Scryfall API to search for Magic: The Gathering cards by name.
+ * This service uses a WebClient instance to perform HTTP calls to the Scryfall API.
  *
- * This service interacts with the Scryfall API using a WebClient to perform searches
- * based on card names. It retrieves detailed card data from the API and parses the
- * data into a structured response object.
+ * Key Features:
+ * - Provides method to perform card searches by a partial or exact card name.
+ * - Supports fuzzy search functionality as per Scryfall API.
+ * - Utilizes JSON parsing to map API responses to domain objects.
  *
- * Responsibilities:
- * - Provides a method for searching for cards by name with fuzzy matching.
- * - Converts the JSON response from the Scryfall API into a ScryfallResponse object.
- *
- * Core Functionality:
- * - `searchCardByName(String cardName)`: Searches the Scryfall API for a card matching
- *   the provided name and attempts fuzzy matching in cases where the name may not be exact.
- * - Handles JSON deserialization through Jackson's ObjectMapper.
- * - Ensures reliable API calls and manages potential JSON parsing errors.
- *
- * Dependencies:
- * - WebClient: Configured for communicating with the Scryfall API.
- *
- * The methods in this service are designed for use in applications that require
- * interaction with Magic: The Gathering card data, such as Discord bot commands
- * or other integrations.
+ * Intended Use:
+ * - Designed for integration with external services or command-based applications that require card lookup functionality.
+ * - Methods in this service are reactive, based on Project Reactor's Mono.
  */
 @Service
 public class ScryfallSearchCardService {

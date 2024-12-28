@@ -5,26 +5,42 @@ import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * A service for generating chart URLs using the QuickChart API based on provided data.
+ * Service for generating custom pie chart URLs using QuickChart.io.
  *
- * This service allows the creation of pie chart URLs by taking chart data and associated
- * properties, such as colors, and constructing a corresponding URL. The generated URLs
- * can be used to visualize the provided data as a pie chart hosted on the QuickChart platform.
+ * This service provides functionality to create a URL for a custom pie chart visualization
+ * by constructing a JSON payload and encoding it for use with the QuickChart API.
  *
- * Features:
- * - Builds pie chart JSON structures based on input data.
- * - Encodes the chart details for use with the QuickChart API.
- * - Returns a complete URL for the generated pie chart.
+ * Core Features:
+ * - Dynamically generates a pie chart with outlabels displaying percentages, counts, and labels.
+ * - Allows customization of chart colors and appearance.
+ * - Computes percentages and totals based on the input data.
+ * - Encodes the chart configuration into a URL that can be used to render the chart in a browser or application.
  *
- * Methods:
- * - generateCustomPieChartUrl: Generates a QuickChart API-compatible URL for a pie chart.
+ * Responsibilities:
+ * - Prepares the input data by calculating percentages and formatting labels.
+ * - Configures the styling and customization of the chart's outlabels.
+ * - Encodes the JSON chart configuration appropriately for URL use.
+ * - Generates a direct URL for rendering the pie chart through QuickChart.io.
+ *
+ * Error Handling:
+ * - Throws a RuntimeException if serialization or URL encoding fails during chart generation.
+ *
+ * Example Use Case:
+ * This service can be used for visualizing various aggregated data where percentages
+ * and totals need to be displayed dynamically, such as mana symbol distributions,
+ * demographic breakdowns, or similar datasets.
+ *
+ * Dependencies:
+ * - Jackson's ObjectMapper for JSON serialization.
+ * - Java's StandardCharset for encoding URLs.
+ *
+ * Design Notes:
+ * - The service assumes proper formatting of input values (e.g., valid color strings and chart data).
+ * - It ensures all visual elements required for the chart are dynamically created based on input data.
  */
 @Service
 public class QuickChartService {
@@ -33,23 +49,60 @@ public class QuickChartService {
         ObjectMapper objectMapper = new ObjectMapper();
 
         try {
-            // Build the background color array properly
+            // Prepare color list
             List<String> colorList = Arrays.stream(colors.split(","))
                     .map(String::trim)
                     .collect(Collectors.toList());
 
+            // Calculate total symbols
+            int totalSymbols = chartData.values().stream().mapToInt(Integer::intValue).sum();
+
+            // Create labels with counts and percentages
+            List<String> labels = new ArrayList<>();
+            List<String> outlabelsText = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : chartData.entrySet()) {
+                int count = entry.getValue();
+                double percentage = (count * 100.0) / totalSymbols;
+
+                labels.add(entry.getKey());
+                outlabelsText.add(String.format("%s (%.1f%%, %d symbols)", entry.getKey(), percentage, count)); // Custom text
+            }
+
             // Build the chart JSON structure
             Map<String, Object> chart = new HashMap<>();
-            chart.put("type", "pie");
+            chart.put("type", "outlabeledPie"); // Chart type
 
             Map<String, Object> data = new HashMap<>();
-            data.put("labels", chartData.keySet());
+            data.put("labels", labels);
             data.put("datasets", List.of(Map.of(
                     "data", chartData.values(),
                     "backgroundColor", colorList
             )));
 
             chart.put("data", data);
+
+            // Configure outlabels to display custom text
+            Map<String, Object> options = new HashMap<>();
+            options.put("plugins", Map.of(
+                    "legend", false,
+                    "outlabels", Map.of(
+                            "text", outlabelsText,
+                            "backgroundColor", "white",
+                            "borderColor", "black",
+                            "borderRadius", "5",
+                            "borderWidth", "1",
+                            "color", "black",
+                            "stretch", 35,
+                            "font", Map.of(
+                                    "resizable", true,
+                                    "minSize", 12,
+                                    "maxSize", 18,
+                                    "weight", "bold"
+                            )
+                    )
+            ));
+
+            chart.put("options", options);
 
             // Convert to JSON and URL-encode
             String chartJson = objectMapper.writeValueAsString(chart);

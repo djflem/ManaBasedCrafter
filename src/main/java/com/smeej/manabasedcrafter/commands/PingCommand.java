@@ -20,9 +20,4 @@ public class PingCommand implements SlashCommand {
                 .withEphemeral(true)
                 .withContent("Pong!");
     }
-
-    @Override
-    public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
-        return null;
-    }
 }

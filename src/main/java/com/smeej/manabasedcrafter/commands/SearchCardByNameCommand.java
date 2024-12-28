@@ -89,7 +89,6 @@ public class SearchCardByNameCommand implements SlashCommand {
         }
     }
 
-    @Override
     public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
         System.err.println("Error: " + error.getMessage());
         return event.reply()

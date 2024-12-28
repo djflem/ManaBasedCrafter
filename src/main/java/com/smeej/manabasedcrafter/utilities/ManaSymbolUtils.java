@@ -5,6 +5,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Utility class for handling and transforming mana symbols and their associated
+ * metadata such as names and colors. This class provides functionalities to
+ * process mana symbol counts and generate corresponding color strings for graphical
+ * representation.
+ *
+ * The class operates on predefined mappings between mana symbols, their names, and
+ * associated colors, which are used for visualization purposes.
+ */
 public class ManaSymbolUtils {
 
     private static final Map<String, String> SYMBOL_TO_NAME = Map.of(
@@ -16,11 +25,11 @@ public class ManaSymbolUtils {
     );
 
     private static final Map<String, String> SYMBOL_TO_COLOR = Map.of(
-            "U", "#1E90FF",   // Blue
-            "B", "#000000",       // Black
-            "G", "#228B22",       // Green
-            "W", "#FFFFFF",       // White
-            "R", "#FF4500"            // Red
+            "U", "#0e68ab",
+            "B", "#160b00",
+            "G", "#00743f",
+            "W", "#f8e7b9",
+            "R", "#d31f2a"
     );
 
     public static Map<String, Integer> filterAndTransformManaCounts(Map<String, Integer> manaCounts) {

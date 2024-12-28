@@ -8,17 +8,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Service for analyzing mana symbols in a card's mana cost by parsing them from Scryfall card data.
+ * Service responsible for parsing and analyzing mana symbols from the mana cost field
+ * of a ScryfallResponse object. This service handles the extraction and aggregation
+ * of mana symbols, providing a processed count of each symbol found.
  *
- * This service is designed to process mana cost strings retrieved from the Scryfall API responses
- * and extract individual mana symbols (e.g., "{W}", "{U}", "{2}"). The extracted mana symbols
- * are then counted and stored in a provided map for analysis or visualization purposes.
+ * Functionality:
+ * - Extracts mana symbols from the "manaCost" field of a ScryfallResponse object using
+ *   a predefined pattern ({<symbol>} format).
+ * - Populates a given map with counts for each extracted symbol, incrementing the count
+ *   for symbols already present in the map.
  *
- * Key Features:
- * - Parses mana cost details from a ScryfallResponse object.
- * - Identifies and extracts individual mana symbols using regular expressions.
- * - Counts the occurrences of each mana symbol and updates a provided map with the counts.
- * - Handles null or missing mana cost data gracefully.
+ * Dependencies:
+ * - Utilizes Java's Pattern and Matcher classes for efficient regex-based symbol extraction.
+ * - ScryfallResponse: The data structure containing card information, including mana cost.
+ *
+ * Typical usage involves using this service in conjunction with other services (e.g.,
+ * ScryfallSearchCardService) to process a collection of cards' mana costs for analysis
+ * or visualization purposes.
  */
 @Service
 public class ScryfallManaSymbolService {

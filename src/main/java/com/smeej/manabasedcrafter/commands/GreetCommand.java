@@ -33,9 +33,4 @@ public class GreetCommand implements SlashCommand {
                 .withEphemeral(true)
                 .withContent("Hello, " + name);
     }
-
-    @Override
-    public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
-        return null;
-    }
 }

@@ -4,6 +4,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Utility class providing methods for processing file contents related to card deck management.
+ * This class includes functionality for parsing deck files and validating file extensions.
+ *
+ * Typical use cases include:
+ * - Reading and parsing deck file contents into a map of card names and their quantities.
+ * - Validating whether a given file extension is supported.
+ */
 public class FileProcessingUtils {
 
     public static Map<String, Integer> parseDeckFile(String fileContent) {
