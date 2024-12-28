@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Bean;
  * The ManaBasedCrafterBot class serves as the main entry point and configuration
  * for the bot application. It initializes the application context, configures
  * the Discord bot client, and ensures the application remains running.
- *
+ * <p>
  * This class uses Spring Boot's {@code @SpringBootApplication} annotation to
  * define the configuration and bootstrap the application.
  */

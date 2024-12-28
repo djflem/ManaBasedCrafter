@@ -10,34 +10,34 @@ import java.util.stream.Collectors;
 
 /**
  * Service for generating custom pie chart URLs using QuickChart.io.
- *
+ * <p>
  * This service provides functionality to create a URL for a custom pie chart visualization
  * by constructing a JSON payload and encoding it for use with the QuickChart API.
- *
+ * <p>
  * Core Features:
  * - Dynamically generates a pie chart with outlabels displaying percentages, counts, and labels.
  * - Allows customization of chart colors and appearance.
  * - Computes percentages and totals based on the input data.
  * - Encodes the chart configuration into a URL that can be used to render the chart in a browser or application.
- *
+ * <p>
  * Responsibilities:
  * - Prepares the input data by calculating percentages and formatting labels.
  * - Configures the styling and customization of the chart's outlabels.
  * - Encodes the JSON chart configuration appropriately for URL use.
  * - Generates a direct URL for rendering the pie chart through QuickChart.io.
- *
+ * <p>
  * Error Handling:
  * - Throws a RuntimeException if serialization or URL encoding fails during chart generation.
- *
+ * <p>
  * Example Use Case:
  * This service can be used for visualizing various aggregated data where percentages
  * and totals need to be displayed dynamically, such as mana symbol distributions,
  * demographic breakdowns, or similar datasets.
- *
+ * <p>
  * Dependencies:
  * - Jackson's ObjectMapper for JSON serialization.
  * - Java's StandardCharset for encoding URLs.
- *
+ * <p>
  * Design Notes:
  * - The service assumes proper formatting of input values (e.g., valid color strings and chart data).
  * - It ensures all visual elements required for the chart are dynamically created based on input data.

@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
  * metadata such as names and colors. This class provides functionalities to
  * process mana symbol counts and generate corresponding color strings for graphical
  * representation.
- *
+ * <p>
  * The class operates on predefined mappings between mana symbols, their names, and
  * associated colors, which are used for visualization purposes.
  */

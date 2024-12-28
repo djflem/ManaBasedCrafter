@@ -14,18 +14,18 @@ import java.util.Map;
  * and defines the functionality for a "searchcard" slash command, which
  * allows users to search for a Magic: The Gathering card by its name using
  * the Scryfall API.
- *
+ * <p>
  * This command retrieves the card image or sends an appropriate error message
  * if the card cannot be found or if no image is available. The command logic
  * is executed asynchronously, and any errors encountered during execution are
  * handled gracefully.
- *
+ * <p>
  * The primary dependencies and methods are described below:
- *
+ * <p>
  * Dependencies:
  * - ScryfallSearchCardService: A service responsible for making requests to
  *   the Scryfall API and retrieving card data.
- *
+ * <p>
  * Key Methods:
  * - getName(): Returns the name of the slash command, which is "searchcard".
  * - handle(ChatInputInteractionEvent): Processes the incoming slash command event
@@ -89,6 +89,7 @@ public class SearchCardByNameCommand implements SlashCommand {
         }
     }
 
+    @Override
     public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
         System.err.println("Error: " + error.getMessage());
         return event.reply()

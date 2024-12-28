@@ -4,13 +4,9 @@ import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import reactor.core.publisher.Mono;
 
 /**
- * Represents a Discord Slash Command that can be used for processing user interactions with custom commands.
- * Implementations of this interface define specific command names and their logic upon user invocation.
- *
- * This interface facilitates:
- * - Retrieving the command name.
- * - Handling the logic upon activation by a user.
- * - Managing error handling for any exceptions during command processing.
+ * Represents a slash command interface that defines the structure for Discord slash command handling.
+ * Implementations of this interface are responsible for managing specific command logic
+ * and processing interaction events triggered within a Discord application.
  */
 public interface SlashCommand {
 
@@ -30,4 +26,15 @@ public interface SlashCommand {
      * @return a Mono<Void> that completes when the command processing is finished
      */
     Mono<Void> handle(ChatInputInteractionEvent event);
+
+    /**
+     * Handles errors that occur during the processing of a slash command interaction.
+     * This method is responsible for logging the error and providing an appropriate
+     * response to the user.
+     *
+     * @param event the ChatInputInteractionEvent that represents the slash command interaction
+     * @param error the Throwable representing the error that occurred
+     * @return a Mono<Void> that completes after sending an error response
+     */
+    Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error);
 }

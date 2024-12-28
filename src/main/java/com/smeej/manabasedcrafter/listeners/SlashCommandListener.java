@@ -13,10 +13,10 @@ import java.util.List;
 /**
  * The SlashCommandListener class is responsible for listening to and handling Discord slash command events.
  * This class leverages a collection of SlashCommand implementations to manage and process slash command interactions.
- *
+ * <p>
  * The listener subscribes to ChatInputInteractionEvent provided by a GatewayDiscordClient, filtering
  * and delegating events to the appropriate SlashCommand based on the command name.
- *
+ * <p>
  * The class uses reactive streams to process commands and ensures all matching and handling logic
  * is encapsulated within the corresponding SlashCommand implementation.
  */

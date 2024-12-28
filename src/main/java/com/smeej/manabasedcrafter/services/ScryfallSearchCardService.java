@@ -10,12 +10,12 @@ import reactor.core.publisher.Mono;
 /**
  * Service class for interacting with the Scryfall API to search for Magic: The Gathering cards by name.
  * This service uses a WebClient instance to perform HTTP calls to the Scryfall API.
- *
+ * <p>
  * Key Features:
  * - Provides method to perform card searches by a partial or exact card name.
  * - Supports fuzzy search functionality as per Scryfall API.
  * - Utilizes JSON parsing to map API responses to domain objects.
- *
+ * <p>
  * Intended Use:
  * - Designed for integration with external services or command-based applications that require card lookup functionality.
  * - Methods in this service are reactive, based on Project Reactor's Mono.
@@ -37,7 +37,7 @@ public class ScryfallSearchCardService {
                         .build())
                 .retrieve()
                 .bodyToMono(String.class)
-                .map(this::parseSearchCardResponse);
+                .mapNotNull(this::parseSearchCardResponse);
     }
 
     private ScryfallResponse parseSearchCardResponse(String json) {

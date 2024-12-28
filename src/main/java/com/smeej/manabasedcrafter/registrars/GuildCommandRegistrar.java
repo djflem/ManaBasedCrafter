@@ -10,6 +10,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import discord4j.rest.RestClient;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.core.io.Resource;
 
@@ -23,16 +24,16 @@ import java.util.List;
  * provided RestClient to communicate with Discord's API for bulk overwriting application commands.
  * It is designed to parse JSON command definitions from resource files and register them
  * automatically with the target guild.
- *
+ * <p>
  * Responsibilities:
  * - Reads command definitions from JSON files located in the resources/commands directory.
  * - Constructs and registers these commands with the specified Discord guild.
  * - Utilizes Discord4J classes and tools, such as JacksonResources, for JSON parsing.
- *
+ * <p>
  * Initialization:
  * - The GuildCommandRegistrar is instantiated by Spring with a pre-configured RestClient.
  * - The guildId property is injected from the application configuration.
- *
+ * <p>
  * Behavior:
  * - The run method is triggered once during application startup and performs the following:
  *   1. Reads command data from JSON files.
@@ -41,7 +42,7 @@ import java.util.List;
  * - The bulk overwrite process is idempotent, ensuring safe re-registration even if only a
  *   single command has been added, changed, or removed.
  * - Logs the success or failure of the command registration process for debugging purposes.
- *
+ * <p>
  * Additional Commands:
  * - This class can utilize methods to add/update/delete guild commands. Please refer to the
  *   Discord4J documentation.
@@ -62,14 +63,15 @@ public class GuildCommandRegistrar implements ApplicationRunner {
 
     //This method will run only once on each start up and is automatically called with Spring so blocking is okay.
     @Override
+    @Nullable
     public void run(ApplicationArguments args) throws IOException {
         //Create an ObjectMapper that supported Discord4J classes
         final JacksonResources d4jMapper = JacksonResources.create();
 
-        // Convenience variables for the sake of easier to read code below.
+        //Convenience variables for the sake of easier to read code below.
         PathMatchingResourcePatternResolver matcher = new PathMatchingResourcePatternResolver();
         final ApplicationService applicationService = client.getApplicationService();
-        final long applicationId = client.getApplicationId().block();
+        final long applicationId = client.getApplicationId().block(); //Using @Nullable annotation
 
         //Get our commands json from resources as command data
         List<ApplicationCommandRequest> commands = new ArrayList<>();
@@ -79,6 +81,9 @@ public class GuildCommandRegistrar implements ApplicationRunner {
 
             commands.add(request);
         }
+
+        //Code to delete one guild command, replace the command id.
+        //client.getApplicationService().deleteGuildApplicationCommand(applicationId, guildId, 1315002085221339266L);
 
         /* Bulk overwrite commands. This is now idempotent, so it is safe to use this even when only 1 command
         is changed/added/removed
