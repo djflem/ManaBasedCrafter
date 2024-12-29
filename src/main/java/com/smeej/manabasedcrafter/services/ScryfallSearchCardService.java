@@ -2,6 +2,8 @@ package com.smeej.manabasedcrafter.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smeej.manabasedcrafter.responses.ScryfallResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -23,6 +25,8 @@ import reactor.core.publisher.Mono;
 @Service
 public class ScryfallSearchCardService {
 
+    private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+
     private final WebClient scryfallWebClient;
 
     public ScryfallSearchCardService(@Qualifier("scryfallWebClient") WebClient scryfallWebClient) {
@@ -42,10 +46,9 @@ public class ScryfallSearchCardService {
 
     private ScryfallResponse parseSearchCardResponse(String json) {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(json, ScryfallResponse.class);
+            return new ObjectMapper().readValue(json, ScryfallResponse.class);
         } catch (Exception e) {
-            System.err.println("Error mapping JSON: " + e.getMessage());
+            LOGGER.error("Error parsing Scryfall API response: {}", e.getMessage(), e);
             return null;
         }
     }

@@ -1,6 +1,9 @@
 package com.smeej.manabasedcrafter.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smeej.manabasedcrafter.utilities.ErrorMessages;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
@@ -44,6 +47,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class QuickChartService {
+
+    private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 
     public String generateCustomPieChartUrl(Map<String, Integer> chartData, String colors) {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -112,7 +117,8 @@ public class QuickChartService {
             return "https://quickchart.io/chart?c=" + encodedJson;
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to build chart JSON", e);
+            LOGGER.error("Error generating chart URL: {}", e.getMessage(), e);
+            throw new RuntimeException(ErrorMessages.GENERIC_ERROR, e);
         }
     }
 }

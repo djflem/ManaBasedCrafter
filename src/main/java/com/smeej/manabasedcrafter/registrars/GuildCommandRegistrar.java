@@ -56,16 +56,16 @@ public class GuildCommandRegistrar implements ApplicationRunner {
     @Value("${guildId}")
     private long guildId;
 
-    //Use the rest client provided by our Bean
+    // Use the rest client provided by our Bean
     private GuildCommandRegistrar(RestClient client) {
         this.client = client;
     }
 
-    //This method will run only once on each start up and is automatically called with Spring so blocking is okay.
+    // This method will run only once on each start up and is automatically called with Spring so blocking is okay.
     @Override
     @Nullable
     public void run(ApplicationArguments args) throws IOException {
-        //Create an ObjectMapper that supported Discord4J classes
+        // Create an ObjectMapper that supported Discord4J classes
         final JacksonResources d4jMapper = JacksonResources.create();
 
         //Convenience variables for the sake of easier to read code below.
@@ -73,7 +73,7 @@ public class GuildCommandRegistrar implements ApplicationRunner {
         final ApplicationService applicationService = client.getApplicationService();
         final long applicationId = client.getApplicationId().block(); //Using @Nullable annotation
 
-        //Get our commands json from resources as command data
+        // Get our commands json from resources as command data
         List<ApplicationCommandRequest> commands = new ArrayList<>();
         for (Resource resource : matcher.getResources("commands/*.json")) {
             ApplicationCommandRequest request = d4jMapper.getObjectMapper()
@@ -82,15 +82,15 @@ public class GuildCommandRegistrar implements ApplicationRunner {
             commands.add(request);
         }
 
-        //Code to delete one guild command, replace the command id.
+        // Code to delete one guild command, replace the command id.
         //client.getApplicationService().deleteGuildApplicationCommand(applicationId, guildId, 1315002085221339266L);
 
         /* Bulk overwrite commands. This is now idempotent, so it is safe to use this even when only 1 command
         is changed/added/removed
         */
         applicationService.bulkOverwriteGuildApplicationCommand(applicationId, guildId, commands)
-                .doOnNext(ignore -> LOGGER.debug("Successfully registered Global Commands"))
-                .doOnError(e -> LOGGER.error("Failed to register global commands", e))
+                .doOnNext(ignore -> LOGGER.info("Successfully registered commands for guild {}", guildId))
+                .doOnError(e -> LOGGER.error("Failed to register commands for guild {}: {}", guildId, e.getMessage(), e))
                 .subscribe();
     }
 }

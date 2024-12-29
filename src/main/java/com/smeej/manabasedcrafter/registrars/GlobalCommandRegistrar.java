@@ -23,15 +23,15 @@
 //
 //    private final RestClient client;
 //
-//    //Use the rest client provided by our Bean
+//    // Use the rest client provided by our Bean
 //    public GlobalCommandRegistrar(RestClient client) {
 //        this.client = client;
 //    }
 //
-//    //This method will run only once on each start up and is automatically called with Spring so blocking is okay.
+//    // This method will run only once on each start up and is automatically called with Spring so blocking is okay.
 //    @Override
 //    public void run(ApplicationArguments args) throws IOException {
-//        //Create an ObjectMapper that supported Discord4J classes
+//        // Create an ObjectMapper that supported Discord4J classes
 //        final JacksonResources d4jMapper = JacksonResources.create();
 //
 //        // Convenience variables for the sake of easier to read code below.
@@ -39,7 +39,7 @@
 //        final ApplicationService applicationService = client.getApplicationService();
 //        final long applicationId = client.getApplicationId().block();
 //
-//        //Get our commands json from resources as command data
+//        // Get our commands json from resources as command data
 //        List<ApplicationCommandRequest> commands = new ArrayList<>();
 //        for (Resource resource : matcher.getResources("commands/*.json")) {
 //            ApplicationCommandRequest request = d4jMapper.getObjectMapper()

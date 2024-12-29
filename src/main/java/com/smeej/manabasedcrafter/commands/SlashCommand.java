@@ -25,7 +25,7 @@ public interface SlashCommand {
      * @param event the ChatInputInteractionEvent that contains details of the slash command interaction
      * @return a Mono<Void> that completes when the command processing is finished
      */
-    Mono<Void> handle(ChatInputInteractionEvent event);
+    Mono<Void> handleCommand(ChatInputInteractionEvent event);
 
     /**
      * Handles errors that occur during the processing of a slash command interaction.

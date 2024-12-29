@@ -39,6 +39,6 @@ public class SlashCommandListener {
                 //Get the first (and only) item in the flux that matches our filter
                 .next()
                 //Have our command class handle all logic related to its specific command.
-                .flatMap(command -> command.handle(event));
+                .flatMap(command -> command.handleCommand(event));
     }
 }

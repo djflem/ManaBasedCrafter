@@ -4,11 +4,14 @@ import com.smeej.manabasedcrafter.responses.ScryfallResponse;
 import com.smeej.manabasedcrafter.services.QuickChartService;
 import com.smeej.manabasedcrafter.services.ScryfallManaSymbolService;
 import com.smeej.manabasedcrafter.services.ScryfallSearchCardService;
+import com.smeej.manabasedcrafter.utilities.ErrorMessages;
 import com.smeej.manabasedcrafter.utilities.FileProcessingUtils;
 import com.smeej.manabasedcrafter.utilities.ManaSymbolUtils;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -65,11 +68,13 @@ import java.util.Set;
 @Component
 public class SearchCardsByFileCommand implements SlashCommand {
 
+    private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+
     private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // 100 ms delay
+    private static final String DEFAULT_ERROR_MESSAGE = "An error occurred while processing your analysis. Please check the deck contents and try again.";
     private static final Set<String> SUPPORTED_FILE_EXTENSIONS = Set.of(".txt", ".csv");
     private static final int MAX_UNIQUE_CARDS = 101; // 101 max card limit for Commander (1 extra just because)
     private static final int MAX_KB_FILESIZE = 5000; // 5 kb limit
-    private static final String DEFAULT_ERROR_MESSAGE = "An error occurred while processing your analysis. Please check the deck contents and try again.";
 
     private final ScryfallSearchCardService scryfallSearchCardService;
     private final ScryfallManaSymbolService scryfallManaSymbolService;
@@ -92,7 +97,7 @@ public class SearchCardsByFileCommand implements SlashCommand {
     }
 
     @Override
-    public Mono<Void> handle(ChatInputInteractionEvent event) {
+    public Mono<Void> handleCommand(ChatInputInteractionEvent event) {
         return event.deferReply()
                 .then(getDeckFileContent(event))
                 .flatMapMany(fileContent -> Flux.fromIterable(FileProcessingUtils.parseDeckFile(fileContent).entrySet()))
@@ -129,12 +134,12 @@ public class SearchCardsByFileCommand implements SlashCommand {
                 .map(attachment -> {
                     String fileName = attachment.getFilename();
                     if (!FileProcessingUtils.isSupportedFileExtension(fileName, SUPPORTED_FILE_EXTENSIONS)) {
-                        throw new IllegalArgumentException("Supported extensions are .txt or .csv.");
+                        throw new IllegalArgumentException(ErrorMessages.INVALID_FILE_EXTENSION);
                     }
                     return downloadFileContent(attachment.getUrl())
                             .flatMap(content -> {
                                 if (content.length() > MAX_KB_FILESIZE) { // 5 KB limit
-                                    return Mono.error(new IllegalArgumentException("File size exceeds the 5 KB limit."));
+                                    return Mono.error(new IllegalArgumentException(ErrorMessages.FILE_TOO_LARGE));
                                 }
                                 return Mono.just(content);
                             });
@@ -185,11 +190,9 @@ public class SearchCardsByFileCommand implements SlashCommand {
 
     @Override
     public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
-        System.err.println("Error during analyzedeck command: " + error.getMessage());
-        error.printStackTrace(); // Log the full stack trace for debugging
-
+        LOGGER.error("Error in command [{}]: {}", getName(), error.getMessage(), error);
         return event.reply()
                 .withEphemeral(true)
-                .withContent(DEFAULT_ERROR_MESSAGE);
+                .withContent(ErrorMessages.GENERIC_ERROR);
     }
 }

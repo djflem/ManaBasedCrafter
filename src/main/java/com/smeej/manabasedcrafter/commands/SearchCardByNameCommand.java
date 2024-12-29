@@ -2,14 +2,16 @@ package com.smeej.manabasedcrafter.commands;
 
 import com.smeej.manabasedcrafter.responses.ScryfallResponse;
 import com.smeej.manabasedcrafter.services.ScryfallSearchCardService;
+import com.smeej.manabasedcrafter.utilities.ErrorMessages;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Map;
 
 /**
  * Represents a command for searching Magic: The Gathering cards by name using the Scryfall API.
@@ -37,8 +39,9 @@ import java.util.Map;
 @Component
 public class SearchCardByNameCommand implements SlashCommand {
 
-    private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // Extracted constant for the delay duration
-    private static final String DEFAULT_ERROR_MESSAGE = "An error occurred while processing your request. Please check the card name and try again.";
+    private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+
+    private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // 100 ms delay
 
     private final ScryfallSearchCardService scryfallSearchCardService;
 
@@ -52,7 +55,7 @@ public class SearchCardByNameCommand implements SlashCommand {
     }
 
     @Override
-    public Mono<Void> handle(ChatInputInteractionEvent event) {
+    public Mono<Void> handleCommand(ChatInputInteractionEvent event) {
         try {
             String encodedCardName = extractCardName(event);
 
@@ -68,30 +71,21 @@ public class SearchCardByNameCommand implements SlashCommand {
     private String extractCardName(ChatInputInteractionEvent event) {
         return event.getOption("cardname")
                 .flatMap(option -> option.getValue().map(value -> URLEncoder.encode(value.asString(), StandardCharsets.UTF_8)))
-                .orElseThrow(() -> new IllegalArgumentException("Card name cannot be empty."));
+                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.CARD_NAME_EMPTY));
     }
 
     private Mono<Void> handleCardResponse(ScryfallResponse response, ChatInputInteractionEvent event) {
-        Map<String, String> cardImageUris = response != null ? response.getImageUris() : null;
-
-        if (cardImageUris != null && cardImageUris.containsKey("normal")) {
-            return replyWithCardImage(event, cardImageUris.get("normal"));
-        } else {
-            return handleError(event, new IllegalArgumentException(DEFAULT_ERROR_MESSAGE));
+        if (response == null || response.getImageUris() == null || !response.getImageUris().containsKey("normal")) {
+            return handleError(event, new IllegalArgumentException(ErrorMessages.API_RESPONSE_ERROR));
         }
-    }
-
-    private Mono<Void> replyWithCardImage(ChatInputInteractionEvent event, String imageUrl) {
-        return event.reply().withEphemeral(false).withContent(imageUrl);
+        return event.reply().withEphemeral(false).withContent(response.getImageUris().get("normal"));
     }
 
     @Override
     public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
-        System.err.println("Error during searchcard command: " + error.getMessage());
-        error.printStackTrace(); // Log the full stack trace for debugging
-
+        LOGGER.error("Error in command [{}]: {}", getName(), error.getMessage(), error);
         return event.reply()
                 .withEphemeral(true)
-                .withContent(DEFAULT_ERROR_MESSAGE);
+                .withContent(ErrorMessages.GENERIC_ERROR);
     }
 }
