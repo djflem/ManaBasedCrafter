@@ -24,50 +24,52 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * A command implementation that processes and analyzes Magic: The Gathering deck files
- * uploaded by users and generates a visual representation of mana symbol distribution.
- * <p>
- * This command is part of a Discord bot system where users can upload deck files in `.txt`
- * or `.csv` format. The command then uses the Scryfall API to fetch card data for each card
- * in the deck and generates a pie chart visualizing the distribution of mana symbols.
+ * Command implementation for analyzing deck files in .txt or .csv format, specifically for analyzing
+ * Magic: The Gathering cards using data fetched from the Scryfall API. This class processes a user-provided
+ * deck file, validates its contents, and generates a visual mana curve chart representing the distribution
+ * of mana symbols in the analyzed deck.
  * <p>
  * Key Features:
- * - Supports `.txt` and `.csv` file formats for the deck file.
- * - Utilizes the Scryfall API for retrieving card details.
- * - Incorporates delays between API requests to comply with rate limits.
- * - Handles and logs errors gracefully if card data retrieval fails.
- * - Analyzes mana symbols using ScryfallManaSymbolService and generates a pie chart using QuickChartService.
+ * - Validates user-uploaded deck files for supported formats and size constraints.
+ * - Retrieves card information from the Scryfall API, including mana symbols.
+ * - Generates a mana distribution chart using the QuickChart API.
+ * - Provides appropriate feedback to users in case of errors or invalid inputs.
+ * <p>
+ * Supported File Extensions:
+ * - .txt
+ * - .csv
+ * <p>
+ * Key Constants:
+ * - REQUEST_DELAY (100ms): Delay between consecutive Scryfall API requests to avoid overloading.
+ * - SUPPORTED_FILE_EXTENSIONS: Set of allowed file extensions for user-uploaded deck files.
+ * - MAX_UNIQUE_CARDS (101): Maximum allowed number of unique cards in a deck.
+ * - MAX_KB_FILESIZE (5000 KB): Maximum allowed deck file size.
+ * - DEFAULT_ERROR_MESSAGE: Default error message returned to the user for generic issues.
  * <p>
  * Dependencies:
- * - ScryfallSearchCardService: For searching and retrieving card data from Scryfall.
- * - ScryfallManaSymbolService: For parsing and analyzing mana symbols from the retrieved card data.
- * - QuickChartService: For generating a pie chart visualizing mana symbol distribution.
- * - WebClient: For downloading file content from Discord and interacting with external APIs.
+ * - ScryfallSearchCardService: Retrieves card details from the Scryfall API.
+ * - ScryfallManaSymbolService: Parses and processes mana symbols from card data.
+ * - QuickChartService: Generates visual charts based on processed mana data.
+ * - WebClient: HTTP client for downloading deck files from user-provided URLs.
  * <p>
- * Command Responsibilities:
- * - Registering the command with the name "analyzedeck".
- * - Extracting deck file content from the uploaded file and validating the file extension.
- * - Parsing the deck file to extract card names and quantities.
- * - Fetching card details from the Scryfall API for each card in the uploaded deck.
- * - Managing mana symbol parsing and generating visual charts based on the analysis.
- * <p>
- * Error Handling:
- * - If the uploaded file is missing or has an unsupported extension, an IllegalArgumentException is thrown.
- * - If any errors occur during file processing, external service calls, or chart generation, error responses
- *   are sent to the user with appropriate messages.
- * <p>
- * Interaction Flow:
- * 1. Users invoke the command by uploading a deck file.
- * 2. The file content is extracted and processed to identify card names and quantities.
- * 3. Card data is fetched from the Scryfall API, and mana symbols are analyzed.
- * 4. A pie chart URL is generated to visualize mana symbol distribution.
- * 5. The chart URL and any additional analysis details are sent as a reply to the user.
+ * Methods:
+ * - getName: Returns the name identifier of the slash command ("analyzedeck").
+ * - handle: Primary handler for processing the command input and generating output.
+ * - processCardEntries: Processes card name and quantity data, fetching and validating through Scryfall API.
+ * - validateAndEncodeCardName: Validates and encodes card names to ensure compatibility with API calls.
+ * - getDeckFileContent: Retrieves and validates the content of the uploaded file.
+ * - downloadFileContent: Downloads file content from a provided URL using WebClient.
+ * - generateManaChart: Creates and returns a mana curve chart based on card data.
+ * - handleError: Manages and logs errors, providing user-friendly messages when exceptions occur.
  */
 @Component
 public class SearchCardsByFileCommand implements SlashCommand {
 
-    private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // Extracted constant for the delay duration
+    private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // 100 ms delay
     private static final Set<String> SUPPORTED_FILE_EXTENSIONS = Set.of(".txt", ".csv");
+    private static final int MAX_UNIQUE_CARDS = 101; // 101 max card limit for Commander (1 extra just because)
+    private static final int MAX_KB_FILESIZE = 5000; // 5 kb limit
+    private static final String DEFAULT_ERROR_MESSAGE = "An error occurred while processing your analysis. Please check the deck contents and try again.";
 
     private final ScryfallSearchCardService scryfallSearchCardService;
     private final ScryfallManaSymbolService scryfallManaSymbolService;
@@ -92,19 +94,23 @@ public class SearchCardsByFileCommand implements SlashCommand {
     @Override
     public Mono<Void> handle(ChatInputInteractionEvent event) {
         return event.deferReply()
-                .then(extractDeckFileContent(event))
+                .then(getDeckFileContent(event))
                 .flatMapMany(fileContent -> Flux.fromIterable(FileProcessingUtils.parseDeckFile(fileContent).entrySet()))
-                .flatMap(entry -> {
-                    String cardName = validateAndEncodeCardName(entry.getKey());
-                    int quantity = entry.getValue();
-                    return Flux.range(0, quantity) // Repeat for the quantity of the card
-                            .flatMap(i -> scryfallSearchCardService.searchCardByName(cardName)); // Use cardName correctly
-                })
-                .delayElements(REQUEST_DELAY) // Delay requests to avoid overloading
-                .onErrorResume(e -> Mono.empty()) // Skip failed API calls gracefully
+                .transform(this::processCardEntries) // Use dedicated processing function
+                .delayElements(REQUEST_DELAY)
+                .onErrorResume(e -> Mono.empty())
                 .collectList()
-                .flatMap(responses -> generateManaChart(responses, event)) // Generate the mana chart
-                .onErrorResume(error -> handleError(event, error)); // Handle errors gracefully
+                .flatMap(responses -> generateManaChart(responses, event))
+                .onErrorResume(error -> handleError(event, error));
+    }
+
+    private Flux<ScryfallResponse> processCardEntries(Flux<Map.Entry<String, Integer>> cardEntries) {
+        return cardEntries.flatMap(entry -> {
+            String cardName = validateAndEncodeCardName(entry.getKey());
+            int quantity = entry.getValue();
+            return Flux.range(0, quantity)
+                    .flatMap(i -> scryfallSearchCardService.searchCardByName(cardName));
+        });
     }
 
     private String validateAndEncodeCardName(String cardName) {
@@ -116,7 +122,7 @@ public class SearchCardsByFileCommand implements SlashCommand {
         return URLEncoder.encode(cardName.trim(), StandardCharsets.UTF_8);
     }
 
-    private Mono<String> extractDeckFileContent(ChatInputInteractionEvent event) {
+    private Mono<String> getDeckFileContent(ChatInputInteractionEvent event) {
         return event.getOption("textorcsvfile")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
                 .map(ApplicationCommandInteractionOptionValue::asAttachment)
@@ -127,13 +133,13 @@ public class SearchCardsByFileCommand implements SlashCommand {
                     }
                     return downloadFileContent(attachment.getUrl())
                             .flatMap(content -> {
-                                if (content.length() > 5000) { // 5 KB limit
+                                if (content.length() > MAX_KB_FILESIZE) { // 5 KB limit
                                     return Mono.error(new IllegalArgumentException("File size exceeds the 5 KB limit."));
                                 }
                                 return Mono.just(content);
                             });
                 })
-                .orElse(Mono.error(new IllegalArgumentException("No file uploaded for processing.")));
+                .orElse(Mono.error(new IllegalArgumentException(DEFAULT_ERROR_MESSAGE)));
     }
 
     private Mono<String> downloadFileContent(String url) { // Renamed for clarity
@@ -156,8 +162,8 @@ public class SearchCardsByFileCommand implements SlashCommand {
         }
 
         // Enforce a limit on total unique cards
-        if (manaCounts.size() > 101) { // Max 101 unique cards
-            return event.editReply("Deck contains more than the allowed 101 unique cards. Please reduce the deck size.").then();
+        if (manaCounts.size() > MAX_UNIQUE_CARDS) {
+            return event.editReply("Deck contains more than the allowed " + MAX_UNIQUE_CARDS + " unique cards. Please reduce the deck size.").then();
         }
 
         // Use ManaSymbolUtils for transformation and color preparation
@@ -168,21 +174,22 @@ public class SearchCardsByFileCommand implements SlashCommand {
         String chartUrl = quickChartService.generateCustomPieChartUrl(chartData, colors);
 
         // Prepare response message with a clickable link
-        StringBuilder message = new StringBuilder("Analysis complete:\n")
+        StringBuilder urlLink = new StringBuilder()
                 .append("[Mana Symbol Chart](").append(chartUrl).append(")"); // Embed clickable text link
         if (failedCards > 0) {
-            message.append("\n⚠️ ").append(failedCards).append(" cards could not be processed.");
+            urlLink.append("\n⚠️ ").append(failedCards).append(" cards could not be processed.");
         }
 
-        return event.editReply(message.toString()).then();
+        return event.editReply(urlLink.toString()).then();
     }
 
     @Override
     public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
-        System.err.println("Error: " + error.getMessage());
+        System.err.println("Error during analyzedeck command: " + error.getMessage());
         error.printStackTrace(); // Log the full stack trace for debugging
 
         return event.reply()
                 .withEphemeral(true)
-                .withContent("Analysis failed: " + error.getMessage());    }
+                .withContent(DEFAULT_ERROR_MESSAGE);
+    }
 }

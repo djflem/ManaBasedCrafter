@@ -3,8 +3,6 @@ package com.smeej.manabasedcrafter.commands;
 import com.smeej.manabasedcrafter.responses.ScryfallResponse;
 import com.smeej.manabasedcrafter.services.ScryfallSearchCardService;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
-import discord4j.core.object.command.ApplicationCommandInteractionOption;
-import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -14,39 +12,33 @@ import java.time.Duration;
 import java.util.Map;
 
 /**
- * The SearchCardByNameCommand class implements the SlashCommand interface
- * and defines the functionality for a "searchcard" slash command, which
- * allows users to search for a Magic: The Gathering card by its name using
- * the Scryfall API.
+ * Represents a command for searching Magic: The Gathering cards by name using the Scryfall API.
+ * This command is implemented as a SlashCommand and is intended to be used within a Discord
+ * bot application, allowing users to search for card details via a slash command interaction.
  * <p>
- * This command retrieves the card image or sends an appropriate error message
- * if the card cannot be found or if no image is available. The command logic
- * is executed asynchronously, and any errors encountered during execution are
- * handled gracefully.
+ * Key Features:
+ * - Processes the `searchcard` slash command to search for a card by name.
+ * - Validates user input for the card name to ensure it's not empty.
+ * - Utilizes the ScryfallSearchCardService to query the card data.
+ * - Responds to users with the card image URL or an error message if the card cannot be found.
+ * - Introduces a short delay between the request and response to avoid API throttling.
+ * - Handles exceptions and provides user-friendly error messages.
  * <p>
- * The primary dependencies and methods are described below:
+ * Primary Behaviors:
+ * - Extracts the card name from the command input and URL-encodes it for the Scryfall API request.
+ * - Processes API responses, validating the presence of a card image before replying.
+ * - Logs errors and stack traces, ensuring proper error handling mechanisms are in place.
  * <p>
- * Dependencies:
- * - ScryfallSearchCardService: A service responsible for making requests to
- *   the Scryfall API and retrieving card data.
- * <p>
- * Key Methods:
- * - getName(): Returns the name of the slash command, which is "searchcard".
- * - handle(ChatInputInteractionEvent): Processes the incoming slash command event
- *   by extracting the card name and retrieving the card information from
- *   the Scryfall API.
- * - extractCardName(ChatInputInteractionEvent): Extracts the card name entered
- *   by the user in the slash command input.
- * - handleCardResponse(ScryfallResponse, ChatInputInteractionEvent): Handles
- *   the response from the Scryfall API, sending the card's image if available
- *   or an appropriate message if not.
- * - handleError(ChatInputInteractionEvent, Throwable): Handles errors that
- *   occur during the command execution, responding with a suitable error message.
+ * Requirements:
+ * - The command depends on the ScryfallSearchCardService for API interaction.
+ * - Command responses are managed using Mono types for reactive programming compatibility.
+ * - Requires interaction events to contain a valid "cardname" option.
  */
 @Component
 public class SearchCardByNameCommand implements SlashCommand {
 
     private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // Extracted constant for the delay duration
+    private static final String DEFAULT_ERROR_MESSAGE = "An error occurred while processing your request. Please check the card name and try again.";
 
     private final ScryfallSearchCardService scryfallSearchCardService;
 
@@ -62,9 +54,9 @@ public class SearchCardByNameCommand implements SlashCommand {
     @Override
     public Mono<Void> handle(ChatInputInteractionEvent event) {
         try {
-            String cardName = extractCardName(event);
+            String encodedCardName = extractCardName(event);
 
-            return scryfallSearchCardService.searchCardByName(cardName)
+            return scryfallSearchCardService.searchCardByName(encodedCardName)
                     .flatMap(response -> handleCardResponse(response, event))
                     .delayElement(REQUEST_DELAY)
                     .onErrorResume(error -> handleError(event, error));
@@ -74,41 +66,23 @@ public class SearchCardByNameCommand implements SlashCommand {
     }
 
     private String extractCardName(ChatInputInteractionEvent event) {
-        String cardName = event.getOption("cardname")
-                .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asString)
-                .orElse("");
-
-        if (cardName.isEmpty()) {
-            throw new IllegalArgumentException("Card name cannot be empty.");
-        }
-
-        // Normalize and encode the card name for safe API usage
-        return URLEncoder.encode(cardName, StandardCharsets.UTF_8);
+        return event.getOption("cardname")
+                .flatMap(option -> option.getValue().map(value -> URLEncoder.encode(value.asString(), StandardCharsets.UTF_8)))
+                .orElseThrow(() -> new IllegalArgumentException("Card name cannot be empty."));
     }
 
     private Mono<Void> handleCardResponse(ScryfallResponse response, ChatInputInteractionEvent event) {
-        if (response == null) {
-            return event.reply()
-                    .withEphemeral(true)
-                    .withContent("Error: No data found for the specified card. Please check the card name and try again.");
-        }
+        Map<String, String> cardImageUris = response != null ? response.getImageUris() : null;
 
-        Map<String, String> imageUris = response.getImageUris();
-
-        if (imageUris != null && imageUris.containsKey("normal")) {
-            return event.reply()
-                    .withEphemeral(false)
-                    .withContent(imageUris.get("normal")); // Send the card image URL
-        } else if (imageUris == null || imageUris.isEmpty()) {
-            return event.reply()
-                    .withEphemeral(true)
-                    .withContent("No image data available for this card. Please check the card name.");
+        if (cardImageUris != null && cardImageUris.containsKey("normal")) {
+            return replyWithCardImage(event, cardImageUris.get("normal"));
         } else {
-            return event.reply()
-                    .withEphemeral(true)
-                    .withContent("Unexpected error: Could not fetch image for this card.");
+            return handleError(event, new IllegalArgumentException(DEFAULT_ERROR_MESSAGE));
         }
+    }
+
+    private Mono<Void> replyWithCardImage(ChatInputInteractionEvent event, String imageUrl) {
+        return event.reply().withEphemeral(false).withContent(imageUrl);
     }
 
     @Override
@@ -118,5 +92,6 @@ public class SearchCardByNameCommand implements SlashCommand {
 
         return event.reply()
                 .withEphemeral(true)
-                .withContent("An error occurred while processing your request. Please check the card name and try again.");    }
+                .withContent(DEFAULT_ERROR_MESSAGE);
+    }
 }
