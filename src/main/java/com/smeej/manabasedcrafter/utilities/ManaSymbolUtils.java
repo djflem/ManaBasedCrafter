@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Utility class for handling and transforming mana symbols and their associated
+ * Utility class providing static factories for handling and transforming mana symbols and their associated
  * metadata such as names and colors. This class provides functionalities to
  * process mana symbol counts and generate corresponding color strings for graphical
  * representation.

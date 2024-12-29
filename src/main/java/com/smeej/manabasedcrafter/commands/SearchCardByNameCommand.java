@@ -7,6 +7,10 @@ import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -42,6 +46,8 @@ import java.util.Map;
 @Component
 public class SearchCardByNameCommand implements SlashCommand {
 
+    private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // Extracted constant for the delay duration
+
     private final ScryfallSearchCardService scryfallSearchCardService;
 
     public SearchCardByNameCommand(ScryfallSearchCardService scryfallSearchCardService) {
@@ -55,25 +61,37 @@ public class SearchCardByNameCommand implements SlashCommand {
 
     @Override
     public Mono<Void> handle(ChatInputInteractionEvent event) {
-        String cardName = extractCardName(event);
+        try {
+            String cardName = extractCardName(event);
 
-        return scryfallSearchCardService.searchCardByName(cardName)
-                .flatMap(response -> handleCardResponse(response, event))
-                .onErrorResume(error -> handleError(event, error));
+            return scryfallSearchCardService.searchCardByName(cardName)
+                    .flatMap(response -> handleCardResponse(response, event))
+                    .delayElement(REQUEST_DELAY)
+                    .onErrorResume(error -> handleError(event, error));
+        } catch (IllegalArgumentException e) {
+            return handleError(event, e); // Handle invalid input immediately
+        }
     }
 
     private String extractCardName(ChatInputInteractionEvent event) {
-        return event.getOption("cardname")
+        String cardName = event.getOption("cardname")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
                 .map(ApplicationCommandInteractionOptionValue::asString)
                 .orElse("");
+
+        if (cardName.isEmpty()) {
+            throw new IllegalArgumentException("Card name cannot be empty.");
+        }
+
+        // Normalize and encode the card name for safe API usage
+        return URLEncoder.encode(cardName, StandardCharsets.UTF_8);
     }
 
     private Mono<Void> handleCardResponse(ScryfallResponse response, ChatInputInteractionEvent event) {
         if (response == null) {
             return event.reply()
                     .withEphemeral(true)
-                    .withContent("Error parsing card data.");
+                    .withContent("Error: No data found for the specified card. Please check the card name and try again.");
         }
 
         Map<String, String> imageUris = response.getImageUris();
@@ -81,19 +99,24 @@ public class SearchCardByNameCommand implements SlashCommand {
         if (imageUris != null && imageUris.containsKey("normal")) {
             return event.reply()
                     .withEphemeral(false)
-                    .withContent(imageUris.get("normal"));
+                    .withContent(imageUris.get("normal")); // Send the card image URL
+        } else if (imageUris == null || imageUris.isEmpty()) {
+            return event.reply()
+                    .withEphemeral(true)
+                    .withContent("No image data available for this card. Please check the card name.");
         } else {
             return event.reply()
                     .withEphemeral(true)
-                    .withContent("No image available for this card.");
+                    .withContent("Unexpected error: Could not fetch image for this card.");
         }
     }
 
     @Override
     public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
-        System.err.println("Error: " + error.getMessage());
+        System.err.println("Error during searchcard command: " + error.getMessage());
+        error.printStackTrace(); // Log the full stack trace for debugging
+
         return event.reply()
                 .withEphemeral(true)
-                .withContent("Card not found.");
-    }
+                .withContent("An error occurred while processing your request. Please check the card name and try again.");    }
 }

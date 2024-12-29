@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Utility class providing methods for processing file contents related to card deck management.
+ * Utility class providing static factories for processing file contents related to card deck management.
  * This class includes functionality for parsing deck files and validating file extensions.
  * <p>
  * Typical use cases include:
@@ -21,10 +21,15 @@ public class FileProcessingUtils {
                 .map(String::trim)
                 .filter(line -> !line.isEmpty()) // Ignore empty lines
                 .forEach(line -> {
+                    // Validate format: [quantity] [cardname]
+                    if (!line.matches("(\\d+\\s+)?[\\w\\s,'-]+")) { // Adjust regex as per card name conventions
+                        throw new IllegalArgumentException("Invalid card name or format in deck file: " + line);
+                    }
+
                     String[] parts = line.split(" ", 2); // Split into [quantity, card name]
                     int quantity = 1; // Default quantity
-
                     String cardName;
+
                     if (parts.length > 1 && parts[0].matches("\\d+")) {
                         quantity = Integer.parseInt(parts[0]); // Parse quantity
                         cardName = parts[1]; // Card name is the rest

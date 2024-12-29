@@ -15,6 +15,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -93,7 +95,7 @@ public class SearchCardsByFileCommand implements SlashCommand {
                 .then(extractDeckFileContent(event))
                 .flatMapMany(fileContent -> Flux.fromIterable(FileProcessingUtils.parseDeckFile(fileContent).entrySet()))
                 .flatMap(entry -> {
-                    String cardName = entry.getKey();
+                    String cardName = validateAndEncodeCardName(entry.getKey());
                     int quantity = entry.getValue();
                     return Flux.range(0, quantity) // Repeat for the quantity of the card
                             .flatMap(i -> scryfallSearchCardService.searchCardByName(cardName)); // Use cardName correctly
@@ -105,6 +107,15 @@ public class SearchCardsByFileCommand implements SlashCommand {
                 .onErrorResume(error -> handleError(event, error)); // Handle errors gracefully
     }
 
+    private String validateAndEncodeCardName(String cardName) {
+        if (cardName == null || cardName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Card name cannot be empty.");
+        }
+
+        // Normalize and encode the card name
+        return URLEncoder.encode(cardName.trim(), StandardCharsets.UTF_8);
+    }
+
     private Mono<String> extractDeckFileContent(ChatInputInteractionEvent event) {
         return event.getOption("textorcsvfile")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
@@ -114,7 +125,13 @@ public class SearchCardsByFileCommand implements SlashCommand {
                     if (!FileProcessingUtils.isSupportedFileExtension(fileName, SUPPORTED_FILE_EXTENSIONS)) {
                         throw new IllegalArgumentException("Supported extensions are .txt or .csv.");
                     }
-                    return downloadFileContent(attachment.getUrl());
+                    return downloadFileContent(attachment.getUrl())
+                            .flatMap(content -> {
+                                if (content.length() > 5000) { // 5 KB limit
+                                    return Mono.error(new IllegalArgumentException("File size exceeds the 5 KB limit."));
+                                }
+                                return Mono.just(content);
+                            });
                 })
                 .orElse(Mono.error(new IllegalArgumentException("No file uploaded for processing.")));
     }
@@ -138,6 +155,11 @@ public class SearchCardsByFileCommand implements SlashCommand {
             }
         }
 
+        // Enforce a limit on total unique cards
+        if (manaCounts.size() > 101) { // Max 101 unique cards
+            return event.editReply("Deck contains more than the allowed 101 unique cards. Please reduce the deck size.").then();
+        }
+
         // Use ManaSymbolUtils for transformation and color preparation
         Map<String, Integer> chartData = ManaSymbolUtils.filterAndTransformManaCounts(manaCounts);
         String colors = ManaSymbolUtils.buildColorString(chartData);
@@ -158,8 +180,9 @@ public class SearchCardsByFileCommand implements SlashCommand {
     @Override
     public Mono<Void> handleError(ChatInputInteractionEvent event, Throwable error) {
         System.err.println("Error: " + error.getMessage());
+        error.printStackTrace(); // Log the full stack trace for debugging
+
         return event.reply()
                 .withEphemeral(true)
-                .withContent("Analysis failed.");
-    }
+                .withContent("Analysis failed: " + error.getMessage());    }
 }
