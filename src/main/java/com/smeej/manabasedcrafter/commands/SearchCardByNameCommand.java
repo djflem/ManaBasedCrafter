@@ -40,7 +40,6 @@ import java.time.Duration;
 public class SearchCardByNameCommand implements SlashCommand {
 
     private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-
     private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // 100 ms delay
 
     private final ScryfallSearchCardService scryfallSearchCardService;

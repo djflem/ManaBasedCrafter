@@ -1,8 +1,14 @@
 package com.smeej.manabasedcrafter.utilities;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Utility class providing static factories for processing file contents related to card deck management.
@@ -14,34 +20,74 @@ import java.util.Set;
  */
 public class FileProcessingUtils {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileProcessingUtils.class);
+
     public static Map<String, Integer> parseDeckFile(String fileContent) {
         Map<String, Integer> deck = new LinkedHashMap<>(); // Preserve order for clarity
+        AtomicInteger totalCards = new AtomicInteger(0); // Track total cards dynamically
 
         fileContent.lines()
                 .map(String::trim)
                 .filter(line -> !line.isEmpty()) // Ignore empty lines
                 .forEach(line -> {
-                    // Validate format: [quantity] [cardname]
-                    if (!line.matches("(\\d+\\s+)?[\\w\\s,'-]+")) { // Adjust regex as per card name conventions
-                        throw new IllegalArgumentException("Invalid card name or format in deck file: " + line);
+                    try {
+                        int quantity = 1; // Default quantity
+                        String cardName;
+
+                        // Check if the line starts with a number
+                        if (Character.isDigit(line.charAt(0))) {
+                            int spaceIndex = line.indexOf(' ');
+                            if (spaceIndex > 0) {
+                                quantity = Integer.parseInt(line.substring(0, spaceIndex).trim());
+                                cardName = line.substring(spaceIndex + 1).trim(); // Remaining part is the card name
+                            } else {
+                                LOGGER.warn("Invalid line format, no card name after quantity: {}", line);
+                                return; // Skip the line if no card name is found
+                            }
+                        } else {
+                            cardName = line.trim(); // Treat the entire line as the card name
+                        }
+
+                        // Merge quantity if the card name already exists
+                        deck.merge(cardName.toLowerCase(), quantity, Integer::sum);
+
+                        // Update the total card count
+                        totalCards.addAndGet(quantity);
+
+                        // Log the current card being processed and total cards so far
+                        LOGGER.info("Processed card: '{}' with quantity: {}. Total cards so far: {}",
+                                cardName, quantity, totalCards.get());
+                    } catch (Exception e) {
+                        LOGGER.warn("Failed to parse line: {}", line, e);
                     }
-
-                    String[] parts = line.split(" ", 2); // Split into [quantity, card name]
-                    int quantity = 1; // Default quantity
-                    String cardName;
-
-                    if (parts.length > 1 && parts[0].matches("\\d+")) {
-                        quantity = Integer.parseInt(parts[0]); // Parse quantity
-                        cardName = parts[1]; // Card name is the rest
-                    } else {
-                        cardName = line; // Entire line is the card name
-                    }
-
-                    // Merge quantity if card name already exists
-                    deck.merge(cardName, quantity, Integer::sum);
                 });
 
-        return deck;
+        LOGGER.info("Finished parsing deck. Total cards: {}", totalCards.get());
+
+        // Validate total card count
+        if (totalCards.get() != 60 && totalCards.get() != 100) {
+            LOGGER.error(ErrorMessages.WRONG_AMOUNT_CARDS);
+            return null; // Return null if deck size is invalid
+        } else {
+            return deck; // Return the deck if valid
+        }
+    }
+
+    public static String validateAndEncodeCardName(String cardName) {
+        if (cardName == null || cardName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Card name cannot be empty.");
+        }
+
+        // Remove potentially dangerous characters (e.g., script injections)
+        String sanitizedCardName = cardName.replaceAll("[^a-zA-Z0-9'\\-\\s,]", "");
+
+        // Ensure the card name is still valid after sanitization
+        if (sanitizedCardName.isEmpty()) {
+            throw new IllegalArgumentException("Card name contains invalid characters only.");
+        }
+
+        // Normalize and encode the sanitized card name
+        return URLEncoder.encode(sanitizedCardName.trim(), StandardCharsets.UTF_8);
     }
 
     public static boolean isSupportedFileExtension(String fileName, Set<String> supportedExtensions) {

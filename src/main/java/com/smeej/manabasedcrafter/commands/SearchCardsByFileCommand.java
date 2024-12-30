@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -69,7 +70,6 @@ import java.util.Set;
 public class SearchCardsByFileCommand implements SlashCommand {
 
     private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-
     private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // 100 ms delay
     private static final String DEFAULT_ERROR_MESSAGE = "An error occurred while processing your analysis. Please check the deck contents and try again.";
     private static final Set<String> SUPPORTED_FILE_EXTENSIONS = Set.of(".txt", ".csv");
@@ -98,33 +98,21 @@ public class SearchCardsByFileCommand implements SlashCommand {
 
     @Override
     public Mono<Void> handleCommand(ChatInputInteractionEvent event) {
-        return event.deferReply()
-                .then(getDeckFileContent(event))
-                .flatMapMany(fileContent -> Flux.fromIterable(FileProcessingUtils.parseDeckFile(fileContent).entrySet()))
-                .transform(this::processCardEntries) // Use dedicated processing function
-                .delayElements(REQUEST_DELAY)
-                .onErrorResume(e -> Mono.empty())
-                .collectList()
-                .flatMap(responses -> generateManaChart(responses, event))
-                .onErrorResume(error -> handleError(event, error));
-    }
+        return event.deferReply() // Defer reply immediately to avoid interaction timeout
+                .then(getDeckFileContent(event)) // Retrieve and validate deck file content
+                .flatMap(fileContent -> {
+                    Map<String, Integer> deck = FileProcessingUtils.parseDeckFile(fileContent);
 
-    private Flux<ScryfallResponse> processCardEntries(Flux<Map.Entry<String, Integer>> cardEntries) {
-        return cardEntries.flatMap(entry -> {
-            String cardName = validateAndEncodeCardName(entry.getKey());
-            int quantity = entry.getValue();
-            return Flux.range(0, quantity)
-                    .flatMap(i -> scryfallSearchCardService.searchCardByName(cardName));
-        });
-    }
+                    if (deck == null) { // Null check for invalid deck parsing
+                        return event.editReply(ErrorMessages.WRONG_AMOUNT_CARDS).then();
+                    }
 
-    private String validateAndEncodeCardName(String cardName) {
-        if (cardName == null || cardName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Card name cannot be empty.");
-        }
-
-        // Normalize and encode the card name
-        return URLEncoder.encode(cardName.trim(), StandardCharsets.UTF_8);
+                    return processCardEntries(Flux.fromIterable(deck.entrySet())) // Process card entries
+                            .delayElements(Duration.ofMillis(100)) // Add 100ms delay between API calls
+                            .collectList()
+                            .flatMap(responses -> generateManaChart(responses, event));
+                })
+                .onErrorResume(error -> handleError(event, error)); // Handle unexpected errors
     }
 
     private Mono<String> getDeckFileContent(ChatInputInteractionEvent event) {
@@ -133,18 +121,43 @@ public class SearchCardsByFileCommand implements SlashCommand {
                 .map(ApplicationCommandInteractionOptionValue::asAttachment)
                 .map(attachment -> {
                     String fileName = attachment.getFilename();
+
+                    // Validate file extension
                     if (!FileProcessingUtils.isSupportedFileExtension(fileName, SUPPORTED_FILE_EXTENSIONS)) {
                         throw new IllegalArgumentException(ErrorMessages.INVALID_FILE_EXTENSION);
                     }
+
+                    // Download and validate file content
                     return downloadFileContent(attachment.getUrl())
                             .flatMap(content -> {
-                                if (content.length() > MAX_KB_FILESIZE) { // 5 KB limit
+                                if (content.length() > MAX_KB_FILESIZE) { // Check for file size limit
                                     return Mono.error(new IllegalArgumentException(ErrorMessages.FILE_TOO_LARGE));
                                 }
                                 return Mono.just(content);
                             });
                 })
-                .orElse(Mono.error(new IllegalArgumentException(DEFAULT_ERROR_MESSAGE)));
+                .orElse(Mono.error(new IllegalArgumentException(ErrorMessages.GENERIC_ERROR))); // Handle missing file case
+    }
+
+    private Flux<ScryfallResponse> processCardEntries(Flux<Map.Entry<String, Integer>> cardEntries) {
+        return cardEntries
+                .delayElements(REQUEST_DELAY) // Enforce 100ms delay between requests
+                .flatMap(entry -> {
+                    try {
+                        String cardName = FileProcessingUtils.validateAndEncodeCardName(entry.getKey());
+                        int quantity = entry.getValue();
+
+                        return Flux.range(0, quantity) // Repeat for each card quantity
+                                .flatMap(i -> scryfallSearchCardService.searchCardByName(cardName))
+                                .onErrorResume(e -> {
+                                    LOGGER.warn("Failed to fetch card '{}': {}", entry.getKey(), e.getMessage());
+                                    return Mono.empty(); // Skip failed cards
+                                });
+                    } catch (Exception e) {
+                        LOGGER.warn("Invalid card entry '{}': {}", entry.getKey(), e);
+                        return Flux.empty(); // Skip invalid entries
+                    }
+                });
     }
 
     private Mono<String> downloadFileContent(String url) { // Renamed for clarity
@@ -161,26 +174,23 @@ public class SearchCardsByFileCommand implements SlashCommand {
         for (ScryfallResponse response : responses) {
             if (response == null) {
                 failedCards++;
+                LOGGER.warn("Failed to fetch card data.");
             } else {
                 scryfallManaSymbolService.parseManaSymbols(response, manaCounts);
             }
         }
 
-        // Enforce a limit on total unique cards
         if (manaCounts.size() > MAX_UNIQUE_CARDS) {
             return event.editReply("Deck contains more than the allowed " + MAX_UNIQUE_CARDS + " unique cards. Please reduce the deck size.").then();
         }
 
-        // Use ManaSymbolUtils for transformation and color preparation
         Map<String, Integer> chartData = ManaSymbolUtils.filterAndTransformManaCounts(manaCounts);
         String colors = ManaSymbolUtils.buildColorString(chartData);
 
-        // Generate pie chart URL
         String chartUrl = quickChartService.generateCustomPieChartUrl(chartData, colors);
 
-        // Prepare response message with a clickable link
         StringBuilder urlLink = new StringBuilder()
-                .append("[Mana Symbol Chart](").append(chartUrl).append(")"); // Embed clickable text link
+                .append("[Mana Symbol Chart](").append(chartUrl).append(")");
         if (failedCards > 0) {
             urlLink.append("\n⚠️ ").append(failedCards).append(" cards could not be processed.");
         }

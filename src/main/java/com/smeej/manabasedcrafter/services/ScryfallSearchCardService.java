@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
+
+import java.time.Duration;
 
 /**
  * Service class for interacting with the Scryfall API to search for Magic: The Gathering cards by name.
@@ -26,6 +29,7 @@ import reactor.core.publisher.Mono;
 public class ScryfallSearchCardService {
 
     private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+    private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // 100 ms delay
 
     private final WebClient scryfallWebClient;
 
@@ -41,6 +45,7 @@ public class ScryfallSearchCardService {
                         .build())
                 .retrieve()
                 .bodyToMono(String.class)
+                .retryWhen(Retry.fixedDelay(3, REQUEST_DELAY)) // Retry up to 3 times with 500ms delay
                 .mapNotNull(this::parseSearchCardResponse);
     }
 
