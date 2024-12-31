@@ -9,32 +9,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.util.Map;
 
 /**
- * Represents a command for searching Magic: The Gathering cards by name using the Scryfall API.
- * This command is implemented as a SlashCommand and is intended to be used within a Discord
- * bot application, allowing users to search for card details via a slash command interaction.
+ * This class represents a command for searching Magic: The Gathering cards by their name
+ * using the Scryfall API. It implements the SlashCommand interface to handle specific
+ * slash command logic within a Discord application.
  * <p>
- * Key Features:
- * - Processes the `searchcard` slash command to search for a card by name.
- * - Validates user input for the card name to ensure it's not empty.
- * - Utilizes the ScryfallSearchCardService to query the card data.
- * - Responds to users with the card image URL or an error message if the card cannot be found.
- * - Introduces a short delay between the request and response to avoid API throttling.
- * - Handles exceptions and provides user-friendly error messages.
+ * Key Responsibilities:
+ * - Extracts the card name from the slash command options.
+ * - Utilizes the ScryfallSearchCardService to perform searches by card name and handle
+ *   potential fallback scenarios.
+ * - Processes successful responses by formatting and sending results back to the user.
+ * - Handles both single-faced and double-faced card responses with proper formatting.
+ * - Manages errors gracefully, ensuring the user is notified of any issues during command execution.
  * <p>
- * Primary Behaviors:
- * - Extracts the card name from the command input and URL-encodes it for the Scryfall API request.
- * - Processes API responses, validating the presence of a card image before replying.
- * - Logs errors and stack traces, ensuring proper error handling mechanisms are in place.
- * <p>
- * Requirements:
- * - The command depends on the ScryfallSearchCardService for API interaction.
- * - Command responses are managed using Mono types for reactive programming compatibility.
- * - Requires interaction events to contain a valid "cardname" option.
+ * Designed Usage:
+ * This command is executed when the user inputs the "searchcard" slash command within a
+ * Discord server. It supports fuzzy name searches and retries failed requests
+ * automatically according to a defined retry policy.
  */
 @Component
 public class SearchCardByNameCommand implements SlashCommand {
@@ -66,20 +62,20 @@ public class SearchCardByNameCommand implements SlashCommand {
                         }
 
                         // Otherwise, fallback to find the card by querying double-faced cards
-                        return scryfallSearchCardService.searchCardByFuzzyName(cardName)
+                        return scryfallSearchCardService.searchDoubleFacedCardByName(cardName)
                                 .flatMap(fallbackResponse -> handleCardResponse(fallbackResponse, event))
-                                .onErrorResume(fallbackError -> handleError(event, fallbackError));
+                                .onErrorResume(error -> handleError(event, error));
                     })
-                    .delayElement(REQUEST_DELAY)
+                    .retryWhen(Retry.fixedDelay(3, REQUEST_DELAY))
                     .onErrorResume(error -> handleError(event, error));
-        } catch (IllegalArgumentException e) {
-            return handleError(event, e);
+        } catch (IllegalArgumentException error) {
+            return handleError(event, error);
         }
     }
 
     private String extractCardNameOption(ChatInputInteractionEvent event) {
         return event.getOption("cardname")
-                .flatMap(option -> option.getValue().map(value -> FileProcessingUtils.validateAndEncodeCardName(value.asString())))
+                .flatMap(option -> option.getValue().map(value -> FileProcessingUtils.validateAndEncodeCardName(value.asString()))) // Sanitization
                 .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.CARD_NAME_EMPTY));
     }
 
@@ -90,25 +86,30 @@ public class SearchCardByNameCommand implements SlashCommand {
 
         // Check if the card has multiple faces
         if (response.getCardFaces() != null && !response.getCardFaces().isEmpty()) {
-            StringBuilder imageUris = new StringBuilder();
+            StringBuilder responseDoubleCardText = new StringBuilder();
 
+            // Handle double faced cards
             for (Map<String, Object> face : response.getCardFaces()) {
+                String faceName = (String) face.get("name");
                 Map<String, String> faceImageUris = (Map<String, String>) face.get("image_uris");
-                if (faceImageUris != null && faceImageUris.containsKey("normal")) {
-                    imageUris.append(faceImageUris.get("normal")).append("\n");
+
+                if (faceName != null && faceImageUris != null && faceImageUris.containsKey("normal")) {
+                    String imageUrl = faceImageUris.get("normal");
+                    responseDoubleCardText.append("  :  [").append(faceName).append("](").append(imageUrl).append(")");
                 }
             }
-
             return event.reply()
                     .withEphemeral(false)
-                    .withContent(imageUris.toString().trim());
+                    .withContent(responseDoubleCardText.toString().trim());
         }
 
         // Handle normal cards
         if (response.getImageUris() != null && response.getImageUris().containsKey("normal")) {
+            String imageUrl = response.getImageUris().get("normal");
+            String responseSingleCardText = "  :  [" + response.getName() + "](" + imageUrl + ")";
             return event.reply()
                     .withEphemeral(false)
-                    .withContent(response.getImageUris().get("normal"));
+                    .withContent(responseSingleCardText);
         }
 
         // Handle case where no image is found

@@ -17,10 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -71,7 +68,6 @@ public class SearchCardsByFileCommand implements SlashCommand {
 
     private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
     private static final Duration REQUEST_DELAY = Duration.ofMillis(100); // 100 ms delay
-    private static final String DEFAULT_ERROR_MESSAGE = "An error occurred while processing your analysis. Please check the deck contents and try again.";
     private static final Set<String> SUPPORTED_FILE_EXTENSIONS = Set.of(".txt", ".csv");
     private static final int MAX_UNIQUE_CARDS = 101; // 101 max card limit for Commander (1 extra just because)
     private static final int MAX_KB_FILESIZE = 5000; // 5 kb limit

@@ -2,6 +2,7 @@ package com.smeej.manabasedcrafter.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smeej.manabasedcrafter.responses.ScryfallResponse;
+import com.smeej.manabasedcrafter.utilities.ErrorMessages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,17 +14,26 @@ import reactor.util.retry.Retry;
 import java.time.Duration;
 
 /**
- * Service class for interacting with the Scryfall API to search for Magic: The Gathering cards by name.
- * This service uses a WebClient instance to perform HTTP calls to the Scryfall API.
+ * Provides services for searching Magic: The Gathering cards using the Scryfall API.
+ * This class interacts with Scryfall to perform card lookups based on a card's name
+ * with optional fuzzy matching or searches for cards with specific characteristics,
+ * such as being double-faced.
  * <p>
- * Key Features:
- * - Provides method to perform card searches by a partial or exact card name.
- * - Supports fuzzy search functionality as per Scryfall API.
- * - Utilizes JSON parsing to map API responses to domain objects.
+ * The service uses a WebClient instance to communicate with the Scryfall API.
+ * Rate-limiting and retry strategies are embedded to handle network issues
+ * and ensure compliance with the API usage guidelines.
  * <p>
- * Intended Use:
- * - Designed for integration with external services or command-based applications that require card lookup functionality.
- * - Methods in this service are reactive, based on Project Reactor's Mono.
+ * Functionality:
+ * - Search for cards by name, allowing fuzzy matches.
+ * - Search specifically for double-faced cards by name.
+ * - Parses API responses into domain-specific objects for further processing.
+ * <p>
+ * Logging is used to capture any errors or issues encountered during the API interaction.
+ * The service enforces a fixed delay between retry attempts for failed requests
+ * and gracefully handles JSON parsing errors.
+ * <p>
+ * This service is typically used in command execution flows where card-related data
+ * from Scryfall is needed.
  */
 @Service
 public class ScryfallSearchCardService {
@@ -37,12 +47,11 @@ public class ScryfallSearchCardService {
         this.scryfallWebClient = scryfallWebClient;
     }
 
-    // WebClient is essential because data must be retrieved from an external source (Scryfall API).
     public Mono<ScryfallResponse> searchCardByName(String cardName) {
         return scryfallWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/cards/named")
-                        .queryParam("fuzzy", cardName) // Add query param without encoding `?`
+                        .queryParam("fuzzy", cardName)
                         .build())
                 .retrieve()
                 .bodyToMono(String.class)
@@ -50,7 +59,7 @@ public class ScryfallSearchCardService {
                 .mapNotNull(this::parseSearchCardResponse);
     }
 
-    public Mono<ScryfallResponse> searchCardByFuzzyName(String cardName) {
+    public Mono<ScryfallResponse> searchDoubleFacedCardByName(String cardName) {
         return scryfallWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/cards/search")
@@ -66,7 +75,7 @@ public class ScryfallSearchCardService {
         try {
             return new ObjectMapper().readValue(json, ScryfallResponse.class);
         } catch (Exception e) {
-            LOGGER.error("Error parsing Scryfall API response: {}", e.getMessage(), e);
+            LOGGER.error(ErrorMessages.API_RESPONSE_ERROR + "{}", e.getMessage(), e);
             return null;
         }
     }
