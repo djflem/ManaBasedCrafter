@@ -3,15 +3,15 @@ package com.smeej.manabasedcrafter.commands;
 import com.smeej.manabasedcrafter.responses.ScryfallResponse;
 import com.smeej.manabasedcrafter.services.ScryfallSearchCardService;
 import com.smeej.manabasedcrafter.utilities.ErrorMessages;
+import com.smeej.manabasedcrafter.utilities.FileProcessingUtils;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 
 /**
  * Represents a command for searching Magic: The Gathering cards by name using the Scryfall API.
@@ -56,28 +56,63 @@ public class SearchCardByNameCommand implements SlashCommand {
     @Override
     public Mono<Void> handleCommand(ChatInputInteractionEvent event) {
         try {
-            String encodedCardName = extractCardName(event);
+            String cardName = extractCardNameOption(event);
 
-            return scryfallSearchCardService.searchCardByName(encodedCardName)
-                    .flatMap(response -> handleCardResponse(response, event))
+            return scryfallSearchCardService.searchCardByName(cardName)
+                    .flatMap(response -> {
+                        // If a response is found, handle it
+                        if (response != null) {
+                            return handleCardResponse(response, event);
+                        }
+
+                        // Otherwise, fallback to find the card by querying double-faced cards
+                        return scryfallSearchCardService.searchCardByFuzzyName(cardName)
+                                .flatMap(fallbackResponse -> handleCardResponse(fallbackResponse, event))
+                                .onErrorResume(fallbackError -> handleError(event, fallbackError));
+                    })
                     .delayElement(REQUEST_DELAY)
                     .onErrorResume(error -> handleError(event, error));
         } catch (IllegalArgumentException e) {
-            return handleError(event, e); // Handle invalid input immediately
+            return handleError(event, e);
         }
     }
 
-    private String extractCardName(ChatInputInteractionEvent event) {
+    private String extractCardNameOption(ChatInputInteractionEvent event) {
         return event.getOption("cardname")
-                .flatMap(option -> option.getValue().map(value -> URLEncoder.encode(value.asString(), StandardCharsets.UTF_8)))
+                .flatMap(option -> option.getValue().map(value -> FileProcessingUtils.validateAndEncodeCardName(value.asString())))
                 .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.CARD_NAME_EMPTY));
     }
 
     private Mono<Void> handleCardResponse(ScryfallResponse response, ChatInputInteractionEvent event) {
-        if (response == null || response.getImageUris() == null || !response.getImageUris().containsKey("normal")) {
+        if (response == null) {
             return handleError(event, new IllegalArgumentException(ErrorMessages.API_RESPONSE_ERROR));
         }
-        return event.reply().withEphemeral(false).withContent(response.getImageUris().get("normal"));
+
+        // Check if the card has multiple faces
+        if (response.getCardFaces() != null && !response.getCardFaces().isEmpty()) {
+            StringBuilder imageUris = new StringBuilder();
+
+            for (Map<String, Object> face : response.getCardFaces()) {
+                Map<String, String> faceImageUris = (Map<String, String>) face.get("image_uris");
+                if (faceImageUris != null && faceImageUris.containsKey("normal")) {
+                    imageUris.append(faceImageUris.get("normal")).append("\n");
+                }
+            }
+
+            return event.reply()
+                    .withEphemeral(false)
+                    .withContent(imageUris.toString().trim());
+        }
+
+        // Handle normal cards
+        if (response.getImageUris() != null && response.getImageUris().containsKey("normal")) {
+            return event.reply()
+                    .withEphemeral(false)
+                    .withContent(response.getImageUris().get("normal"));
+        }
+
+        // Handle case where no image is found
+        return handleError(event, new IllegalArgumentException(ErrorMessages.API_RESPONSE_ERROR));
     }
 
     @Override

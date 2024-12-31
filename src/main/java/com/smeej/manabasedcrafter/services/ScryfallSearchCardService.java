@@ -40,12 +40,25 @@ public class ScryfallSearchCardService {
     // WebClient is essential because data must be retrieved from an external source (Scryfall API).
     public Mono<ScryfallResponse> searchCardByName(String cardName) {
         return scryfallWebClient.get()
-                .uri(uriBuilder -> uriBuilder.path("/cards/named")
-                        .queryParam("fuzzy", cardName)
+                .uri(uriBuilder -> uriBuilder
+                        .path("/cards/named")
+                        .queryParam("fuzzy", cardName) // Add query param without encoding `?`
                         .build())
                 .retrieve()
                 .bodyToMono(String.class)
-                .retryWhen(Retry.fixedDelay(3, REQUEST_DELAY)) // Retry up to 3 times with 500ms delay
+                .retryWhen(Retry.fixedDelay(3, REQUEST_DELAY))
+                .mapNotNull(this::parseSearchCardResponse);
+    }
+
+    public Mono<ScryfallResponse> searchCardByFuzzyName(String cardName) {
+        return scryfallWebClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/cards/search")
+                        .queryParam("q", "is:double-faced name:\"" + cardName + "\"") // Query for double-faced cards
+                        .build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .retryWhen(Retry.fixedDelay(3, REQUEST_DELAY))
                 .mapNotNull(this::parseSearchCardResponse);
     }
 

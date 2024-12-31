@@ -2,6 +2,8 @@ package com.smeej.manabasedcrafter.responses;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -43,6 +45,9 @@ public class ScryfallResponse {
     @JsonProperty("image_uris")
     private Map<String, String> imageUris;
 
+    @JsonProperty("card_faces")
+    private List<Map<String, Object>> cardFaces;
+
     // Getters and Setters
     public String getObject() {
         return object;
@@ -62,5 +67,9 @@ public class ScryfallResponse {
 
     public Map<String, String> getImageUris() {
         return imageUris;
+    }
+
+    public List<Map<String, Object>> getCardFaces() {
+        return cardFaces;
     }
 }

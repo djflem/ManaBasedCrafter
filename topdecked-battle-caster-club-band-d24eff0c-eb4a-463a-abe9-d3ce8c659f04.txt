@@ -84,6 +84,6 @@
 1 Sulfur Falls  
 1 Wooded Foothills  
 1 Yavimaya Hollow  
-1 Bala Ged Recovery  
-1 Kazuul's Fury  
-1 Sea Gate Restoration  
+1 Bala Ged Sanctuary
+1 Kazuul's Cliffs  
+1 Sea Gate, Reborn  

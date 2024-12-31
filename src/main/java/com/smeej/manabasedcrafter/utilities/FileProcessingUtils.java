@@ -78,10 +78,9 @@ public class FileProcessingUtils {
             throw new IllegalArgumentException("Card name cannot be empty.");
         }
 
-        // Remove potentially dangerous characters (e.g., script injections)
-        String sanitizedCardName = cardName.replaceAll("[^a-zA-Z0-9'\\-\\s,]", "");
+        // Remove apostrophes and sanitize the card name
+        String sanitizedCardName = cardName.replace("'", "").replaceAll("[^a-zA-Z0-9\\-\\s,]", "");
 
-        // Ensure the card name is still valid after sanitization
         if (sanitizedCardName.isEmpty()) {
             throw new IllegalArgumentException("Card name contains invalid characters only.");
         }
